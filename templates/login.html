@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ABCo-op</title>
+    <link href="./static/css/login.css" rel="stylesheet">
+    <script src="./static/js/htmx.min.js"></script>
+  </head>
+  <body>
+    <div id="promo_div">
+    </div>
+    <div id="login_div">
+      <div id="login_header">
+        <h1>ABCo-op</h1>
+        <p>Log into your account and start making your goals come into fruition!</p>
+      </div>
+      <div id="login_form">
+        <form hx-post="/verify-user/">
+          <h1>Log in</h1>
+          <div>
+            <p>User code:</p>
+            <input type="text" name="code" placeholder="AF-#####" value="AF-" minlength="8" maxlength="8"  id="user_code" required/>
+          </div>
+          <div>
+            <p>Password:</p>
+            <input type="password" name="password" id="user_password" placeholder="Password123"  minlength="5" maxlength="25"  required/>
+          </div>
+          <input type="submit" name="submit_btn" id="submit_btn" value="submit">
+        </form> 
+      </div>
+      <div id="login_footer">
+        <p>Don't have an account? <a href="">register here!</a></p> 
+      </div>
+    </div>
+  </body>
+</html>

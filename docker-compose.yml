@@ -1,0 +1,18 @@
+services:
+  cooperative:
+    image: ibmcom/db2:latest
+    container_name: cooperative
+    hostname: cooperative
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - 51000:50000
+    environment:
+      DB2INST1_PASSWORD: coop4312
+      DBNAME: coopdb
+      LICENSE: accept
+    volumes:
+      - cooperative_db_data:/var/lib/volume/cooperative_db/data
+
+volumes:
+  cooperative_db_data:

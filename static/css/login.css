@@ -1,0 +1,136 @@
+
+:root {
+  --promo-div-width: 30vw;
+  --login-div-width: calc(100vw - var(--promo-div-width));
+  
+  --login-bg: rgb(224, 224, 224);
+  --login-footer-bg: rgb(160, 160, 225);
+
+  --login-header-height: 30vh;
+  --login-footer-height: 15vh;
+  --login-body-height: calc(100vh - calc(var(--login-header-height) + var(--login-footer-height)));
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+#promo_div {
+  height: 100vh;
+  width: var(--promo-div-width);
+  background-image: url('/static/images/promotion.jpg');
+  background-size: cover;
+  background-position-x: center;
+}
+
+#login_div {
+  background: var(--login-bg);
+  height: 100vh;
+  width: var(--login-div-width);
+  display: flex;
+  flex-direction: column;
+}
+
+#login_header,
+#login_form,
+#login_footer {
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  display: flex;
+}
+
+#login_header {
+  height: var(--login-header-height);
+  padding-top: 0px;
+  flex-direction: column;
+  border-bottom: 1px solid #000;
+}
+
+#login_header h1 {
+  font-size: 64px;
+  margin-bottom: 0;
+}
+
+#login_header p {
+  font-size: 28px;
+}
+
+#login_form form {
+  height: var(--login-body-height);
+  width: var(--login-div-width);
+}
+
+#login_form form div {
+  width: 100%;
+}
+
+#login_header,
+#login_form form,
+#login_form form div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+#login_form form h1 {
+  font-size: 48px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+#login_form form div p {
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-size: 28px;
+}
+
+#login_form form div input {
+  margin-bottom: 25px;
+  font-size: 26px;
+  padding: 8px;
+  border: 1px none #000;
+  background: inherit;
+  border-bottom: 3px solid #797979;
+  transition: 0.75s;
+  outline: none;
+}
+
+#login_form form div input:focus {
+  border-bottom: 3px solid #2f2f2f;
+}
+
+#login_form form div input,
+#login_form form div p {
+  width: 75%;
+}
+
+#submit_btn {
+  font-size: 32px;
+  padding: 10px;
+  display: flex;
+  flex-direction: row-reverse;
+  border: 1px solid #000;
+  border-radius: 30px;
+  padding-left: 75px;
+  padding-right: 75px;
+}
+
+#login_footer {
+  height: var(--login-footer-height);
+  background: linear-gradient(180deg, var(--login-bg) 0%, var(--login-footer-bg) 40%); 
+  font-size: 24px;
+}
+
+#login_footer a {
+  color: #532872;
+}
+
+#login_footer a:hover {
+  color: #3f0a49;
+}
+
