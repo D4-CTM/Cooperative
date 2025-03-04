@@ -27,7 +27,7 @@ func verifyUser(w http.ResponseWriter, r *http.Request) {
 	err := backend.Fetch(&user)
 	if err != nil {
 		fmt.Println(err.Error())
-		return
+    return
 	}
   
   fmt.Println("user_id:", user.UserId, "\tuser_pass:", user.Password)
@@ -36,9 +36,40 @@ func verifyUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("\tUser verify")
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	pages := template.Must(template.ParseFiles("./templates/login.html"))
-	pages.Execute(w, nil)
+func RenderTemplate(w http.ResponseWriter, path string, data map[string]string) {
+  tmpl, err := template.ParseFiles(
+    "./templates/layout.html",
+    "./templates/"+ path +".html",
+  )
+  if err != nil {
+    fmt.Printf("err.Error: %v\n", err.Error())
+    http.Error(w, "Error loading template on " + path, http.StatusInternalServerError)
+    return;
+  }
+  err = tmpl.Execute(w, data)
+  if err != nil {
+    fmt.Printf("err.Error: %v\n", err.Error())
+    http.Error(w, "Error loading template on " + path, http.StatusInternalServerError)
+    return;
+  }
+}
+
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+  content := map[string]string{
+    "title": "Login - ABCo-op",
+    "stylePath": "login.css",
+  }
+
+  RenderTemplate(w, "login", content)  
+}
+
+func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+  content := map[string]string{
+    "title": "Register - ABCo-op",
+    "stylePath": "register.css",
+  }
+
+  RenderTemplate(w, "register", content)
 }
 
 func main() {
@@ -47,10 +78,10 @@ func main() {
 
 	mux.Handle("/static/", http.StripPrefix("/static/", static))
 
+  //mux.HandleFunc("/register-user/", registerUser)
 	mux.HandleFunc("/verify-user/", verifyUser)
-	mux.HandleFunc("/login", loginHandler)
-
-	fmt.Println("starting connection with db")
+  mux.HandleFunc("/register", RegisterHandler)
+  mux.HandleFunc("/login", LoginHandler)
 
 	fmt.Println("Server started at:\nlocalhost:5312/")
 	log.Fatal(http.ListenAndServe(":5412", mux))
