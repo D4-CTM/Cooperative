@@ -17,8 +17,8 @@ DROP TABLE IF EXISTS liquidation_transactions;
 CREATE TABLE IF NOT EXISTS users (
 	user_number INT UNIQUE NOT NULL GENERATED ALWAYS AS IDENTITY,
 	user_id CHAR(8) UNIQUE NOT NULL GENERATED ALWAYS AS('AF-'|| LPAD(user_number, 5, '0')),
-  password VARCHAR(25) NOT NULL DEFAULT "Password",
-  first_name VARCHAR(50),
+	password VARCHAR(25) NOT NULL,
+	first_name VARCHAR(50),
 	second_name VARCHAR(50),
 	first_lastname VARCHAR(50),
 	second_lastname VARCHAR(50),
@@ -28,14 +28,14 @@ CREATE TABLE IF NOT EXISTS users (
 	address_city VARCHAR(50),
 	address_department VARCHAR(50),
 	address_reference VARCHAR(150),
-	primary_email VARCHAR(100),
+	primary_email VARCHAR(100) NOT NULL UNIQUE,
 	secondary_email VARCHAR(100),
 	birth_date DATE,
 	hiring_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	created_by VARCHAR(101),
 	creation_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	modified_by VARCHAR(101),
-	last_modification_date TIMESTAMP,
+	last_modification_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (user_id)
 );
 
@@ -81,9 +81,9 @@ CREATE TABLE IF NOT EXISTS accounts (
 	created_by VARCHAR(101),
 	creation_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	modified_by VARCHAR(101),
-	last_modification_date TIMESTAMP,
+	last_modification_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY(account_id),
-  FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 -- Ganancias de los dividendos a nombre de la cuenta
@@ -105,6 +105,8 @@ CREATE TABLE IF NOT EXISTS transactions (
 	PRIMARY KEY (transaction_id),
 	FOREIGN KEY (account_id) REFERENCES accounts(account_id)
 );
+
+
 
 -- Cierre mensual
 CREATE TABLE IF NOT EXISTS closures (
