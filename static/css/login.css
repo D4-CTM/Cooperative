@@ -142,3 +142,7 @@ body {
   color: #3f0a49;
 }
 
+#error_div p {
+  color: red;
+}
+

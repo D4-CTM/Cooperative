@@ -27,6 +27,7 @@ func verifyUser(w http.ResponseWriter, r *http.Request) {
 	err := backend.Fetch(&user)
 	if err != nil {
 		fmt.Println(err.Error())
+
     return
 	}
   
