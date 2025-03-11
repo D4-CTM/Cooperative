@@ -1,3 +1,4 @@
+
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS accounts;
 DROP TABLE IF EXISTS account_profit;
@@ -15,11 +16,11 @@ DROP TABLE IF EXISTS liquidation_transactions;
 
 -- usuarios
 CREATE TABLE IF NOT EXISTS users (
-	user_id CHAR(8) UNIQUE NOT NULL, --Generated via trigger & sequence ('AF-' || LPAD(nexval('user_seq'), 5, '0')) - done
-	password VARCHAR(25) NOT NULL,
-	first_name VARCHAR(50),
+	user_id CHAR(8) UNIQUE NOT NULL, --Generated via trigger & sequence ('AF-' || LPAD(nexval('user_seq'), 5, '0'))
+	password VARCHAR(25) NOT NULL CHECK (LENGTH(password) > 5),
+	first_name VARCHAR(50) NOT NULL,
 	second_name VARCHAR(50),
-	first_lastname VARCHAR(50),
+	first_lastname VARCHAR(50) NOT NULL,
 	second_lastname VARCHAR(50),
 	address_house_number VARCHAR(50),
 	address_street VARCHAR(50),
@@ -27,7 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
 	address_city VARCHAR(50),
 	address_department VARCHAR(50),
 	address_reference VARCHAR(150),
-	primary_email VARCHAR(100) NOT NULL UNIQUE,
+	primary_email VARCHAR(100) NOT NULL,
 	secondary_email VARCHAR(100),
 	birth_date DATE,
 	hiring_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -51,8 +52,8 @@ CREATE TABLE IF NOT EXISTS loans (
 	user_id CHAR(8) NOT NULL,
 	loan_id CHAR(16) UNIQUE NOT NULL, -- Generated via trigger(user_id + "-PT" + LPAD(nexval(loan_seq), 5, '0')) - done
 	loan_periods INT CHECK (loan_periods <= 12),
-	loan_interest NUMERIC(3,3) NOT NULL DEFAULT 0.15,
-  requested_amount NUMERIC(8,2) NOT NULL,
+	loan_interest NUMERIC(3,3) NOT NULL DEFAULT 0.15 CHECK(loan_interest BETWEEN 0 AND 1),
+  requested_amount NUMERIC(8,2) NOT NULL CHECK (REQUESTED_AMOUNT > 120),
 	loan_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	PRIMARY KEY (loan_id),
 	FOREIGN KEY (user_id) REFERENCES users(user_id)
@@ -62,10 +63,10 @@ CREATE TABLE IF NOT EXISTS loans (
 CREATE TABLE IF NOT EXISTS payments (
 	payment_id INT NOT NULL UNIQUE GENERATED ALWAYS AS IDENTITY,
 	loan_id CHAR(16) NOT NULL,
-	payment_number char(5) NOT NULL, -- Generated via trigger LPAD(COALESE(COUNT(loan_id), 0) + 1, 5, '0')
+	payment_number char(5) NOT NULL, -- Generated via trigger - done
 	deadline DATE NOT NULL,
-	interest_to_pay NUMERIC(8,2), -- Generated via trigger
-	capital_to_pay NUMERIC(8,2),  -- Generated via trigger
+	interest_to_pay NUMERIC(8,2),
+	capital_to_pay NUMERIC(8,2),
 	amount_to_pay NUMERIC(8,2) NOT NULL GENERATED ALWAYS AS (interest_to_pay + capital_to_pay),
 	PRIMARY KEY (payment_id),
 	FOREIGN KEY (loan_id) REFERENCES loans(loan_id)
@@ -77,12 +78,12 @@ CREATE TABLE IF NOT EXISTS accounts (
 	account_type char(3) NOT NULL CHECK(account_type IN ('CAP', 'CAR')),
 	account_id char(12) UNIQUE NOT NULL GENERATED ALWAYS AS (user_id || '-' || account_type),
 	balance NUMERIC(8,2) NOT NULL DEFAULT 0 CHECK(balance >= 0),
-	created_by CHAR(8) NOT NULL,
+	created_by VARCHAR(101) NOT NULL,
 	creation_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	modified_by VARCHAR(101),
 	last_modification_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY(account_id),
-  FOREIGN KEY (user_id) REFERENCES users(user_id)
+	FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 -- Ganancias de los dividendos a nombre de la cuenta
@@ -96,9 +97,9 @@ CREATE TABLE IF NOT EXISTS account_profit (
 -- abonos
 CREATE TABLE IF NOT EXISTS transactions (
 	account_id CHAR(12) NOT NULL,
-	transaction_id VARCHAR(20) UNIQUE NOT NULL,--Generated via trigger (account_id || '-CAP-' || COUNT(account_id) + 1)
+	transaction_id VARCHAR(20) UNIQUE NOT NULL,--Generated via trigger (account_id || '-CAP-' || COUNT(account_id) + 1) - done
 	transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-	transaction_ammount NUMERIC(8,2) NOT NULL,
+	transaction_ammount NUMERIC(8,2) NOT NULL CHECK(transaction_ammount > 0),
 	transaction_comment VARCHAR(255),
 	PRIMARY KEY (transaction_id),
 	FOREIGN KEY (account_id) REFERENCES accounts(account_id)

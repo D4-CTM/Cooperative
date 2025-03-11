@@ -1,3 +1,4 @@
+<!-- the idea of a layout was stolen from chatgpt  -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,4 +11,14 @@
   <body>
     {{ template "content" . }}     
   </body>
+  <script>
+    // This code was generated with chatGPT
+    document.addEventListener("htmx:afterRequest", function(evt) {
+        if (evt.detail.xhr.getResponseHeader("HX-Location")) {
+            setTimeout(() => {
+                window.location.reload(); // Forces full reload after redirect
+            }, 100); // Small delay to ensure redirection is processed
+        }
+    });
+  </script>
 </html>

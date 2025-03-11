@@ -1,14 +1,15 @@
-
 :root {
   --promo-div-width: 30vw;
   --login-div-width: calc(100vw - var(--promo-div-width));
-  
+
   --login-bg: rgb(224, 224, 224);
   --login-footer-bg: rgb(160, 160, 225);
 
   --login-header-height: 30vh;
   --login-footer-height: 15vh;
-  --login-body-height: calc(100vh - calc(var(--login-header-height) + var(--login-footer-height)));
+  --login-body-height: calc(
+    100vh - calc(var(--login-header-height) + var(--login-footer-height))
+  );
 }
 
 body {
@@ -20,7 +21,7 @@ body {
 #promo_div {
   height: 100vh;
   width: var(--promo-div-width);
-  background-image: url('/static/images/promotion.jpg');
+  background-image: url("/static/images/promotion.jpg");
   background-size: cover;
   background-position-x: center;
 }
@@ -130,7 +131,11 @@ body {
 
 #login_footer {
   height: var(--login-footer-height);
-  background: linear-gradient(180deg, var(--login-bg) 0%, var(--login-footer-bg) 40%); 
+  background: linear-gradient(
+    180deg,
+    var(--login-bg) 0%,
+    var(--login-footer-bg) 40%
+  );
   font-size: 24px;
 }
 
@@ -145,4 +150,3 @@ body {
 #error_div p {
   color: red;
 }
-

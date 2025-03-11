@@ -22,9 +22,9 @@ type User struct {
 	UserNumber           int            `db:"USER_NUMBER"`
 	UserId               string         `db:"USER_ID"`
 	Password             string         `db:"PASSWORD"`
-	FirstName            sql.NullString `db:"FIRST_NAME"`
+	FirstName            string         `db:"FIRST_NAME"`
 	SecondName           sql.NullString `db:"SECOND_NAME"`
-	FirstLastname        sql.NullString `db:"FIRST_LASTNAME"`
+	FirstLastname        string         `db:"FIRST_LASTNAME"`
 	SecondLastname       sql.NullString `db:"SECOND_LASTNAME"`
 	AddressHouseNumber   sql.NullString `db:"ADDRESS_HOUSE_NUMBER"`
 	AddressStreet        sql.NullString `db:"ADDRESS_STREET"`
@@ -32,7 +32,7 @@ type User struct {
 	AddressCity          sql.NullString `db:"ADDRESS_CITY"`
 	AddressDepartment    sql.NullString `db:"ADDRESS_DEPARTMENT"`
 	AddressReference     sql.NullString `db:"ADDRESS_REFERENCE"`
-	PrimaryEmail         sql.NullString `db:"PRIMARY_EMAIL"`
+	PrimaryEmail         string         `db:"PRIMARY_EMAIL"`
 	SecondaryEmail       sql.NullString `db:"SECONDARY_EMAIL"`
 	BirthDate            sql.NullTime   `db:"BIRTH_DATE"`
 	HiringDate           time.Time      `db:"HIRING_DATE"`
@@ -52,7 +52,7 @@ func (user *User) Insert(db *sqlx.DB) error {
       ) VALUES (
         :password, :first_name, :second_name, :first_lastname, :second_lastname, :address_house_number, :address_street,
         :address_avenue, :address_city, :address_department, :address_reference, :primary_email, :secondary_email, :birth_date,
-        :hiring_date, :created_by,	:creation_date, :modified_by,	:last_modification_date
+        :hiring_date, :created_by,	:creation_date, :modified_by, :last_modification_date
       )
     )`)
 
@@ -67,7 +67,7 @@ func (user *User) Insert(db *sqlx.DB) error {
 
 func (user *User) Update(db *sqlx.DB) error {
 	query :=
-	strings.ToUpper(`
+		strings.ToUpper(`
   UPDATE users SET
     password=:password, first_name=:first_name, second_name=:second_name, first_lastname=:first_lastname, seccond_lastname=:second_lastname,
     address_house_number=:address_house_number, address_street=:address_street, address_avenue=:address_avenue, address_city=:address_city,
@@ -75,7 +75,7 @@ func (user *User) Update(db *sqlx.DB) error {
     modified_by=:modified_by, last_modification_date=:last_modification_date
   WHERE user_id=:user_id
   `)
-  
+
 	_, err := db.NamedExec(query, &user)
 	if err != nil {
 		return fmt.Errorf("Crash while updating user\nerr.Error(): %v\n", err.Error())
@@ -98,4 +98,3 @@ type PhoneNumbers struct {
 	user_phone_number int
 	region_number     int
 }
-
