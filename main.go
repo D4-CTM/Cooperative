@@ -2,10 +2,12 @@ package main
 
 import (
 	"cooperative/backend"
+	"database/sql"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -17,6 +19,48 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
         return ;
     }
 
+    first_name := r.PostFormValue("first_name")
+    second_name := r.PostFormValue("second_name")
+    first_last_name := r.PostFormValue("first_lastname")
+    second_lastname := r.PostFormValue("second_lastname")
+    birthdate, _ := time.Parse("2006-01-02", r.PostFormValue("birth_date")) 
+    email := r.PostFormValue("email")
+    recovery_email := r.PostFormValue("recovery_email")
+    _password := r.PostFormValue("password")
+    department := r.PostFormValue("department")
+    city := r.PostFormValue("city")
+    street := r.PostFormValue("street")
+    avenue := r.PostFormValue("avenue")
+    house_number := r.PostFormValue("house_number")
+    reference := r.PostFormValue("reference")
+
+    user := backend.User {
+        Password: _password,
+        FirstName: first_name,
+        FirstLastname: first_last_name,
+        SecondName: sql.NullString{String: second_name, Valid: len(strings.TrimSpace(second_name)) > 0},
+        SecondLastname: sql.NullString{String: second_lastname, Valid: len(strings.TrimSpace(second_lastname)) > 0},
+        BirthDate: sql.NullTime{Time: birthdate, Valid: birthdate.Year() > 1},
+        PrimaryEmail: email,
+        SecondaryEmail: sql.NullString{String: recovery_email, Valid: len(strings.TrimSpace(recovery_email)) > 0},
+        AddressDepartment: sql.NullString{String: department, Valid: len(strings.TrimSpace(department)) > 0},
+        AddressCity: sql.NullString{String: city, Valid: len(strings.TrimSpace(city)) > 0},
+        AddressStreet: sql.NullString{String: street, Valid: len(strings.TrimSpace(street)) > 0},
+        AddressAvenue: sql.NullString{String: avenue, Valid: len(strings.TrimSpace(avenue)) > 0},
+        AddressHouseNumber: sql.NullString{String: house_number, Valid: len(strings.TrimSpace(house_number)) > 0},
+        AddressReference: sql.NullString{String: reference, Valid: len(strings.TrimSpace(reference)) > 0},
+        HiringDate: time.Now(),
+        CreatedBy: sql.NullString{String: "Admin", Valid: true},
+        CreationDate: time.Now(),
+        ModifiedBy: sql.NullString{String: "Admin", Valid: true},
+        LastModificationDate: time.Now(),
+    }
+
+    err := backend.Insert(&user)
+    if err != nil {
+        fmt.Println(err.Error())
+        return ;
+    }    
 }
 
 func verifyUser(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +88,7 @@ func verifyUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("user_id:", user.UserId, "\tuser_pass:", user.Password)
-	fmt.Println("User number:", user.UserNumber)
+	fmt.Println("User id:", user.UserId)
 
     w.Header().Set("HX-Location", "/dashboard") 
     w.WriteHeader(http.StatusSeeOther)

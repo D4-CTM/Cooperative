@@ -3,7 +3,6 @@ package backend
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -19,7 +18,6 @@ type Fetchable interface {
 }
 
 type User struct {
-	UserNumber           int            `db:"USER_NUMBER"`
 	UserId               string         `db:"USER_ID"`
 	Password             string         `db:"PASSWORD"`
 	FirstName            string         `db:"FIRST_NAME"`
@@ -43,41 +41,62 @@ type User struct {
 }
 
 func (user *User) Insert(db *sqlx.DB) error {
-	query :=
-		strings.ToUpper(`SELECT user_number, user_id FROM FINAL TABLE (
-      INSERT INTO users (
-        password, first_name, second_name, first_lastname, second_lastname, address_house_number, address_street,
-        address_avenue, address_city, address_department, address_reference, primary_email,	secondary_email, birth_date,
-        hiring_date, created_by,	creation_date, modified_by,	last_modification_date
-      ) VALUES (
-        :password, :first_name, :second_name, :first_lastname, :second_lastname, :address_house_number, :address_street,
-        :address_avenue, :address_city, :address_department, :address_reference, :primary_email, :secondary_email, :birth_date,
-        :hiring_date, :created_by,	:creation_date, :modified_by, :last_modification_date
-      )
-    )`)
+    query := `CALL sp_insert_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    _, err := db.Exec(query, 
+        sql.Out{Dest: &user.UserId}, 
+        user.Password, 
+        user.FirstName, 
+        user.SecondName, 
+        user.FirstLastname, 
+        user.SecondLastname, 
+        user.AddressHouseNumber, 
+        user.AddressStreet,
+        user.AddressAvenue,
+        user.AddressCity,
+        user.AddressDepartment,
+        user.AddressReference,
+        user.PrimaryEmail,
+        user.SecondaryEmail,
+        user.BirthDate,
+        user.HiringDate,
+        user.CreatedBy,
+        user.CreationDate,
+        user.ModifiedBy,
+        user.LastModificationDate)
+    
+    if err != nil {
+        return fmt.Errorf("Crash at user insert!\nerr.Error(): %v\n", err.Error())
+    }
 
-	err := db.QueryRowx(query, &user).Scan(&user.UserNumber, &user.UserId)
-	if err != nil {
-		return fmt.Errorf("Crash at user insert!\nerr.Error(): %v\n", err.Error())
-	}
-
-	fmt.Println("User inserted succesfully")
+    fmt.Println("User inserted succesfully, id:", user.UserId)
 	return nil
 }
 
 func (user *User) Update(db *sqlx.DB) error {
-	query :=
-		strings.ToUpper(`
-  UPDATE users SET
-    password=:password, first_name=:first_name, second_name=:second_name, first_lastname=:first_lastname, seccond_lastname=:second_lastname,
-    address_house_number=:address_house_number, address_street=:address_street, address_avenue=:address_avenue, address_city=:address_city,
-    address_department=:address_department, address_reference=:address_reference, primary_email=:primary_email, secondary_email=:secondary_email,
-    modified_by=:modified_by, last_modification_date=:last_modification_date
-  WHERE user_id=:user_id
-  `)
-
-	_, err := db.NamedExec(query, &user)
-	if err != nil {
+    query := `CALL sp_update_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    _, err := db.Exec(query, 
+        sql.Out{Dest: &user.UserId}, 
+        user.Password, 
+        user.FirstName, 
+        user.SecondName, 
+        user.FirstLastname, 
+        user.SecondLastname, 
+        user.AddressHouseNumber, 
+        user.AddressStreet,
+        user.AddressAvenue,
+        user.AddressCity,
+        user.AddressDepartment,
+        user.AddressReference,
+        user.PrimaryEmail,
+        user.SecondaryEmail,
+        user.BirthDate,
+        user.HiringDate,
+        user.CreatedBy,
+        user.CreationDate,
+        user.ModifiedBy,
+        user.LastModificationDate)
+    
+    if err != nil {
 		return fmt.Errorf("Crash while updating user\nerr.Error(): %v\n", err.Error())
 	}
 

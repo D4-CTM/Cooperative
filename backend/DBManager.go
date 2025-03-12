@@ -27,3 +27,15 @@ func Fetch(fetchable Fetchable) error {
 
 	return fetchable.Fetch(con)
 }
+
+func Insert(crud Crudeable) error {
+    con, err := getConnection()
+    defer con.Close()
+
+    if err != nil {
+        return err
+    }
+
+    return crud.Insert(con)
+}
+
