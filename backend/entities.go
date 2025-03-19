@@ -17,12 +17,12 @@ type Fetchable interface {
 	Fetch(db *sqlx.DB) error
 }
 
-type User struct {
+type Users struct {
 	UserId               string         `db:"USER_ID"`
 	Password             string         `db:"PASSWORD"`
 	Admin                bool           `db:"IS_ADMIN"`
-    IsActive             bool           `db:"IS_ACTIVE"`
-    FirstName            string         `db:"FIRST_NAME"`
+	IsActive             bool           `db:"IS_ACTIVE"`
+	FirstName            string         `db:"FIRST_NAME"`
 	SecondName           sql.NullString `db:"SECOND_NAME"`
 	FirstLastname        string         `db:"FIRST_LASTNAME"`
 	SecondLastname       sql.NullString `db:"SECOND_LASTNAME"`
@@ -42,7 +42,7 @@ type User struct {
 	LastModificationDate time.Time      `db:"LAST_MODIFICATION_DATE"`
 }
 
-func (user *User) Insert(db *sqlx.DB) error {
+func (user *Users) Insert(db *sqlx.DB) error {
 	query := `CALL sp_insert_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 	_, err := db.Exec(query,
 		sql.Out{Dest: &user.UserId},
@@ -74,7 +74,7 @@ func (user *User) Insert(db *sqlx.DB) error {
 	return nil
 }
 
-func (user *User) Update(db *sqlx.DB) error {
+func (user *Users) Update(db *sqlx.DB) error {
 	query := `CALL sp_update_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 	_, err := db.Exec(query,
 		sql.Out{Dest: &user.UserId},
@@ -105,7 +105,7 @@ func (user *User) Update(db *sqlx.DB) error {
 	return nil
 }
 
-func (user *User) Fetch(db *sqlx.DB) error {
+func (user *Users) Fetch(db *sqlx.DB) error {
 	err := db.Get(user, `SELECT * FROM users WHERE user_id=? AND password=?`, user.UserId, user.Password)
 	if err != nil {
 		return fmt.Errorf("Crash while fetching user\nerr.Error(): %v\n", err.Error())
@@ -115,9 +115,9 @@ func (user *User) Fetch(db *sqlx.DB) error {
 }
 
 type PhoneNumbers struct {
-	UserId          string
-	UserPhoneNumber int
-	RegionNumber    int
+	UserId          string `db:"USER_ID"`
+	UserPhoneNumber int    `db:"USER_PHONE_NUMBER"`
+	RegionNumber    int    `db:"REGION_NUMBER"`
 }
 
 func (pn *PhoneNumbers) Insert(db *sqlx.DB) error {
@@ -143,13 +143,13 @@ func (pn *PhoneNumbers) Update(db *sqlx.DB) error {
 }
 
 type Loans struct {
-	LoanId   string
-	UserId   string
-	Periods  int
-	Interest float32
-	Capital  float64
-	Date     time.Time
-	IsPayed  bool
+	LoanId   string    `db:"LOAN_ID"`
+	UserId   string    `db:"USER_ID"`
+	Periods  int       `db:"LOAN_PERIODS"`
+	Interest float32   `db:"LOAN_INTEREST"`
+	Capital  float64   `db:"REQUESTED_AMOUNT"`
+	Date     time.Time `db:"LOAN_DATE"`
+	IsPayed  bool      `db:"IS_PAYED"`
 }
 
 func (loan *Loans) Insert(db *sqlx.DB) error {
@@ -172,6 +172,48 @@ func (loan *Loans) Insert(db *sqlx.DB) error {
 }
 
 func (loan *Loans) Update(db *sqlx.DB) error {
-    return nil
+	query := `CALL sp_update_loan(?,?,?,?,?)`
+	_, err := db.Exec(query,
+		loan.LoanId,
+		loan.Periods,
+		loan.Interest,
+		loan.Capital,
+		loan.Date)
+	if err != nil {
+		return fmt.Errorf("Crash while updating the loan!\nerr.Error(): %v\n", err.Error())
+	}
+
+	return nil
+}
+
+func (loan *Loans) Fetch(db *sqlx.DB) error {
+	err := db.Get(loan, `SELECT * FROM loans WHERE loan_id = ?`, loan.LoanId)
+	if err != nil {
+		return fmt.Errorf("Crash while fetching loans\nerr.Error(): %v\n", err.Error())
+	}
+
+	return nil
+}
+
+type Payments struct {
+	PaymentId     int       `db:"PAYMENT_ID"`
+	LoanId        string    `db:"LOAN_ID"`
+	PaymentNumber string    `db:"PAYMENT_NUMBER"`
+	Deadline      time.Time `db:"DEADLINE"`
+	IPMT          float64   `db:"INTEREST_TO_PAY"`
+	PPMT          float64   `db:"CAPITAL_TO_PAY"`
+	PMT           float64   `db:"AMOUNT_TO_PAY"`
+	IsPayed       bool      `db:"IS_PAYED"`
+    FmtDeadline   string
+}
+
+func (payment *Payments) Fetch(db *sqlx.DB) error {
+	err := db.Get(payment, `SELECT * FROM payments WHERE loan_id = ? AND payment_number = ?`, payment.LoanId, payment.PaymentNumber)
+	if err != nil {
+		return fmt.Errorf("Crash while fetching loans\nerr.Error(): %v\n", err.Error())
+	}
+    payment.FmtDeadline = payment.Deadline.Format("2006-02-03")
+	return nil
+    
 }
 

@@ -22,6 +22,43 @@
         </form>
         <script src="./static/js/requestLoan.js"></script>
     {{ else if eq .loanActive "T"}}
-                
+        <h1>LOAN DETAILS</h1>
+        <table class="loan-details">
+            <tr>
+                <th>Loan id</th>
+                <th>Requested by</th>
+                <th>Periods requested</th>
+                <th>Amount requested</th>
+                <th>Date requested</th>    
+            </tr>
+            <tr>
+                <td>{{ .loan.LoanId }}</td>
+                <td>{{ .loan.UserId }}</td>
+                <td>{{ .loan.Periods }}</td>
+                <td>{{ .loan.Capital }}</td>
+                <td>{{ .loanDate }}</td>
+            </tr>
+        </table>
+
+        <table class="payment-details">
+            <tr>
+                <th>No. </th>
+                <th>deadline </th>
+                <th>IPMT </th>
+                <th>PPMT. </th>
+                <th>PMT </th>
+                <th>Is payed?</th>
+            </tr>
+            {{ range .payments }}
+                <tr>
+                    <td>{{ .PaymentNumber }}</td>
+                    <td>{{ .FmtDeadline }}</td>
+                    <td>{{ .IPMT }}</td>
+                    <td>{{ .PPMT }}</td>
+                    <td>{{ .PMT }}</td>
+                    <td>{{ .IsPayed }}</td>
+                </tr>
+            {{ end }}
+        </table>
     {{ end }}
 {{ end }}

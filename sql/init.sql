@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS payments (
 	capital_to_pay NUMERIC(8,2),
 	amount_to_pay NUMERIC(8,2) NOT NULL GENERATED ALWAYS AS (interest_to_pay + capital_to_pay),
 	is_payed BOOLEAN NOT NULL DEFAULT FALSE,
-    PRIMARY KEY (payment_id),
+    PRIMARY KEY (loan_id, payment_number),
 	FOREIGN KEY (loan_id) REFERENCES loans(loan_id)
 );
 

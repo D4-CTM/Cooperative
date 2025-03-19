@@ -81,7 +81,7 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 	house_number := r.PostFormValue("house_number")
 	reference := r.PostFormValue("reference")
 
-	user := backend.User{
+	user := backend.Users{
 		Password:             _password,
 		FirstName:            first_name,
 		FirstLastname:        first_last_name,
@@ -112,7 +112,7 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("your id is:", user.UserId)
 
 	w.Header().Set("HX-Location", "/login")
-	w.WriteHeader(http.StatusSeeOther)
+	w.WriteHeader(http.StatusOK)
 	fmt.Println("\tUser registered")
 }
 
@@ -126,7 +126,7 @@ func verifyUser(w http.ResponseWriter, r *http.Request) {
 	id := r.PostFormValue("code")
 	pass := r.PostFormValue("password")
 
-	user := backend.User{
+	user := backend.Users{
 		UserId:   id,
 		Password: pass,
 	}
@@ -154,7 +154,7 @@ func verifyUser(w http.ResponseWriter, r *http.Request) {
     
 
 	w.Header().Set("HX-Location", "/dashboard")
-	w.WriteHeader(http.StatusSeeOther)
+	w.WriteHeader(http.StatusOK)
 	fmt.Println("\tUser verify")
 }
 
@@ -242,7 +242,22 @@ func DashboardLoanHandler(w http.ResponseWriter, r *http.Request) {
     content["loanActive"] = stringBool(backend.LoginUser.LoanId != "")
 
     if (content["loanActive"] == "T") {
-        fmt.Println("There is a loan active")
+        payments, err := backend.FetchPayments(backend.LoginUser.LoanId)
+        if err != nil {
+            fmt.Println(err.Error())
+        }
+
+        content["payments"] = payments 
+
+        loan := backend.Loans{LoanId: backend.LoginUser.LoanId}
+        err = backend.Fetch(&loan)
+        if err != nil {
+            fmt.Println(err.Error())
+        }
+        // We change the UserId to the name of the user to make it more user friendly
+        loan.UserId = backend.LoginUser.Name
+        content["loanDate"] = loan.Date.Format("2006-02-03")        
+        content["loan"] = loan
     }
 
 	RenderTemplate(w, content, path, "./templates/DashboardOptions/loan.html")
