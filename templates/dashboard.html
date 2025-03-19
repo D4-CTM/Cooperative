@@ -1,0 +1,18 @@
+{{ define "content" }}
+    <div id="main_div">
+        <div id="options">
+            <h1>ABCo-op</h1>
+            <button type="submit" hx-post="/dashboard-user/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data">{{ .user }}</button>
+            <button type="submit" hx-post="/dashboard-Account/" hx-swap="innerHTML" hx-target="#display_data">Accounts</button>
+            <button type="submit" hx-post="/dashboard-loan/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data">Loans</button>
+            <button type="submit" hx-post="/dashboard-transactions/" hx-swap="innerHTML" hx-target="#display_data">Transactions</button>
+            {{ if eq .admin "T" }} 
+                <button type="submit" hx-post="/dashboard-closure/" hx-swap="none">Closure</button>
+                <button type="submit" hx-post="/dashboard-n_users/" hx-swap="none">Users</button>
+            {{ end }}
+        </div>
+        <div id="display_data">
+            {{ template "dashboard-content" . }}            
+        </div>
+    </div>
+{{ end }}

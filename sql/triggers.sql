@@ -42,7 +42,7 @@ CREATE OR REPLACE TRIGGER tr_create_payments
 AFTER INSERT ON loans
 REFERENCING NEW AS n
 FOR EACH ROW
-BEGIN
+BEGIN ATOMIC
 	DECLARE PMT NUMERIC(8,2);
 	DECLARE capital NUMERIC(8,2);
 	DECLARE interest_rate NUMERIC(6,6);
@@ -90,6 +90,7 @@ BEGIN
   SELECT u.first_name, u.first_lastname INTO user_first_name, user_first_lastname
   FROM users u WHERE u.user_id = n.user_id;
   
-  SET n.created_by = user_first_name || ' ' || user_first_lastname;
+    SET n.created_by = user_first_name || ' ' || user_first_lastname;
+    SET n.modified_by = n.created_by;
 END;
 

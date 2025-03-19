@@ -20,7 +20,9 @@ type Fetchable interface {
 type User struct {
 	UserId               string         `db:"USER_ID"`
 	Password             string         `db:"PASSWORD"`
-	FirstName            string         `db:"FIRST_NAME"`
+	Admin                bool           `db:"IS_ADMIN"`
+    IsActive             bool           `db:"IS_ACTIVE"`
+    FirstName            string         `db:"FIRST_NAME"`
 	SecondName           sql.NullString `db:"SECOND_NAME"`
 	FirstLastname        string         `db:"FIRST_LASTNAME"`
 	SecondLastname       sql.NullString `db:"SECOND_LASTNAME"`
@@ -41,62 +43,62 @@ type User struct {
 }
 
 func (user *User) Insert(db *sqlx.DB) error {
-    query := `CALL sp_insert_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
-    _, err := db.Exec(query, 
-        sql.Out{Dest: &user.UserId}, 
-        user.Password, 
-        user.FirstName, 
-        user.SecondName, 
-        user.FirstLastname, 
-        user.SecondLastname, 
-        user.AddressHouseNumber, 
-        user.AddressStreet,
-        user.AddressAvenue,
-        user.AddressCity,
-        user.AddressDepartment,
-        user.AddressReference,
-        user.PrimaryEmail,
-        user.SecondaryEmail,
-        user.BirthDate,
-        user.HiringDate,
-        user.CreatedBy,
-        user.CreationDate,
-        user.ModifiedBy,
-        user.LastModificationDate)
-    
-    if err != nil {
-        return fmt.Errorf("Crash at user insert!\nerr.Error(): %v\n", err.Error())
-    }
+	query := `CALL sp_insert_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+	_, err := db.Exec(query,
+		sql.Out{Dest: &user.UserId},
+		user.Password,
+		user.FirstName,
+		user.SecondName,
+		user.FirstLastname,
+		user.SecondLastname,
+		user.AddressHouseNumber,
+		user.AddressStreet,
+		user.AddressAvenue,
+		user.AddressCity,
+		user.AddressDepartment,
+		user.AddressReference,
+		user.PrimaryEmail,
+		user.SecondaryEmail,
+		user.BirthDate,
+		user.HiringDate,
+		user.CreatedBy,
+		user.CreationDate,
+		user.ModifiedBy,
+		user.LastModificationDate)
 
-    fmt.Println("User inserted succesfully, id:", user.UserId)
+	if err != nil {
+		return fmt.Errorf("Crash at user insert!\nerr.Error(): %v\n", err.Error())
+	}
+
+	fmt.Println("User inserted succesfully, id:", user.UserId)
 	return nil
 }
 
 func (user *User) Update(db *sqlx.DB) error {
-    query := `CALL sp_update_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
-    _, err := db.Exec(query, 
-        sql.Out{Dest: &user.UserId}, 
-        user.Password, 
-        user.FirstName, 
-        user.SecondName, 
-        user.FirstLastname, 
-        user.SecondLastname, 
-        user.AddressHouseNumber, 
-        user.AddressStreet,
-        user.AddressAvenue,
-        user.AddressCity,
-        user.AddressDepartment,
-        user.AddressReference,
-        user.PrimaryEmail,
-        user.SecondaryEmail,
-        user.BirthDate,
-        user.HiringDate,
-        user.CreatedBy,
-        user.CreationDate,
-        user.ModifiedBy,
-        user.LastModificationDate)
-    
-    if err != nil {
+	query := `CALL sp_update_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+	_, err := db.Exec(query,
+		sql.Out{Dest: &user.UserId},
+		user.Password,
+		user.FirstName,
+		user.SecondName,
+		user.FirstLastname,
+		user.SecondLastname,
+		user.AddressHouseNumber,
+		user.AddressStreet,
+		user.AddressAvenue,
+		user.AddressCity,
+		user.AddressDepartment,
+		user.AddressReference,
+		user.PrimaryEmail,
+		user.SecondaryEmail,
+		user.BirthDate,
+		user.HiringDate,
+		user.CreatedBy,
+		user.CreationDate,
+		user.ModifiedBy,
+		user.LastModificationDate)
+
+	if err != nil {
 		return fmt.Errorf("Crash while updating user\nerr.Error(): %v\n", err.Error())
 	}
 
@@ -113,7 +115,63 @@ func (user *User) Fetch(db *sqlx.DB) error {
 }
 
 type PhoneNumbers struct {
-	user_id           string
-	user_phone_number int
-	region_number     int
+	UserId          string
+	UserPhoneNumber int
+	RegionNumber    int
 }
+
+func (pn *PhoneNumbers) Insert(db *sqlx.DB) error {
+	query := `CALL sp_insert_phone(?, ?, ?)`
+
+	_, err := db.Exec(query, pn.UserId, pn.UserPhoneNumber, pn.RegionNumber)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (pn *PhoneNumbers) Update(db *sqlx.DB) error {
+	query := `CALL sp_update_phone(?, ?, ?)`
+
+	_, err := db.Exec(query, pn.UserId, pn.UserPhoneNumber, pn.RegionNumber)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type Loans struct {
+	LoanId   string
+	UserId   string
+	Periods  int
+	Interest float32
+	Capital  float64
+	Date     time.Time
+	IsPayed  bool
+}
+
+func (loan *Loans) Insert(db *sqlx.DB) error {
+	query := `CALL sp_create_loan(?,?,?,?,?,?,?)`
+	_, err := db.Exec(query,
+		sql.Out{Dest: &loan.LoanId},
+		sql.Out{Dest: &loan.Date},
+		sql.Out{Dest: &loan.IsPayed},
+		loan.UserId,
+		loan.Periods,
+		loan.Interest,
+		loan.Capital)
+
+	if err != nil {
+		return fmt.Errorf("Crash at loan insertion!\nerr.Error(): %v\n", err.Error())
+	}
+
+	fmt.Printf("Loan inserted succesfully!\nuser_id: %s\tloan_id: %s\n", loan.UserId, loan.LoanId)
+	return nil
+}
+
+func (loan *Loans) Update(db *sqlx.DB) error {
+    return nil
+}
+

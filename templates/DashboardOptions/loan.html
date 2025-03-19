@@ -1,0 +1,27 @@
+{{ define "dashboard-content" }}
+    {{ if eq .loanActive "F" }}
+       <h1 class="option-header">GET LOAN</h1>
+        <form>
+            <div class="form-content">
+                <div class="input-div">
+                    <p>Loan periods (months):</p>
+                    <input type="number" name="periods" value="6" min="0" max="12" oninput="verifyPeriods(this)">
+                </div>
+                <div class="input-div">
+                    <p>Loan interest percentage (1-100):</p>
+                    <input type="number" name="interest" value="15" min="1" max="100" oninput="verifyInterest(this)">
+                </div>
+                <div class="input-div">
+                    <p>Requested amount:</p>
+                    <input type="number" name="capital" value="2000", min="1000" max="20000" oninput="verifyAmount(this)">
+                </div>
+            </div>
+            <div class="form-buttons">
+                <input type="button" name="accept-btn" value="request loan" hx-post="/request-loan/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data"> 
+            </div>
+        </form>
+        <script src="./static/js/requestLoan.js"></script>
+    {{ else if eq .loanActive "T"}}
+                
+    {{ end }}
+{{ end }}

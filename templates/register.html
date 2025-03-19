@@ -7,7 +7,7 @@
         <div class="row-parent-input-div">    
             <div class="input-div">
               <p>First name*:</p>
-              <input type="text" name="first_name" value placeholder="Josué" required/>
+              <input type="text" name="first_name" value="" placeholder="Josué" required/>
             </div>
             <div class="input-div">
               <p>Second name:</p>
@@ -31,7 +31,7 @@
             </div>
             <div class="input-div">
               <p>Main email*:</p>
-              <input type="email" name="email" value=""  placeholder="example@gmail.com" required/>
+              <input type="email" name="email" value="" autocomplete="off"  placeholder="example@gmail.com" required/>
             </div>
             <div class="input-div">
               <p>Recovery email:</p>
@@ -39,7 +39,7 @@
             </div>
             <div class="input-div">
                 <p>Password*:</p>
-                <input type="password" name="password" value="" minlength="5" maxlength="25"  placeholder="Password123" required/>
+                <input type="password" name="password" value="" autocomplete="off" minlength="5" maxlength="25"  placeholder="Password123" required/>
             </div>
         </div>
         <div class="row-parent-input-div">
@@ -75,10 +75,12 @@
       </div>
       <div id="button-div">
         <input type="submit" name="return_btn" id="return_btn" hx-post="/" value="Cancel"/>
-        <input type="submit" name="submit_btn" id="submit_btn" hx-post="/register-user/" hx-swap="innerHTML"  hx-on:click="validateForm(event)" value="Register"/>
+        <input type="submit" name="submit_btn" id="submit_btn" hx-post="/register-user/" hx-targer="#register_js" hx-swap="innerHTML"  hx-on:click="validateForm(event)" value="Register"/>
       </div>
     </form>
+    <p id="login-txt">Already have an account?<a href="/login">login</a></p>
   </div>
 </div>
-<script src="./static/js/validation.js"/> 
+<script id="register_js"></script>
+<script src="./static/js/validation.js"></script> 
 {{ end }}

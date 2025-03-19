@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS users (
 	primary_email VARCHAR(100) NOT NULL,
 	secondary_email VARCHAR(100),
 	birth_date DATE,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_admin BOOLEAN DEFAULT FALSE,
 	hiring_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	created_by VARCHAR(101),
 	creation_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -52,10 +54,11 @@ CREATE TABLE IF NOT EXISTS loans (
 	user_id CHAR(8) NOT NULL,
 	loan_id CHAR(16) UNIQUE NOT NULL, -- Generated via trigger(user_id + "-PT" + LPAD(nexval(loan_seq), 5, '0')) - done
 	loan_periods INT CHECK (loan_periods <= 12),
-	loan_interest NUMERIC(3,3) NOT NULL DEFAULT 0.15 CHECK(loan_interest BETWEEN 0 AND 1),
-  requested_amount NUMERIC(8,2) NOT NULL CHECK (REQUESTED_AMOUNT > 120),
+	loan_interest NUMERIC(3,3) NOT NULL DEFAULT 0.15 CHECK (loan_interest BETWEEN 0 AND 1),
+    requested_amount NUMERIC(8,2) NOT NULL CHECK (REQUESTED_AMOUNT > 120),
 	loan_date DATE NOT NULL DEFAULT CURRENT_DATE,
-	PRIMARY KEY (loan_id),
+	is_payed BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (loan_id),
 	FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
@@ -68,7 +71,8 @@ CREATE TABLE IF NOT EXISTS payments (
 	interest_to_pay NUMERIC(8,2),
 	capital_to_pay NUMERIC(8,2),
 	amount_to_pay NUMERIC(8,2) NOT NULL GENERATED ALWAYS AS (interest_to_pay + capital_to_pay),
-	PRIMARY KEY (payment_id),
+	is_payed BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (payment_id),
 	FOREIGN KEY (loan_id) REFERENCES loans(loan_id)
 );
 

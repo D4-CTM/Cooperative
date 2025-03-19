@@ -11,7 +11,7 @@
   <body>
     {{ template "content" . }}     
   </body>
-  <script>
+  <script id="refresh_js">
     // This code was generated with chatGPT
     document.addEventListener("htmx:afterRequest", function(evt) {
         if (evt.detail.xhr.getResponseHeader("HX-Location")) {
