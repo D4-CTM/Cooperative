@@ -35,7 +35,7 @@ function validateForm(event) {
 
 //Code generated via chatgpt
 document
-    .getElementById("login-form")
+    .getElementById("form-div")
     .addEventListener("submit", function(event) {
         const submitButton = document.getElementById("submit-button");
         submitButton.disabled = true;
@@ -131,6 +131,21 @@ function verifyPaymentAmount(input) {
 }
 
 function handleResponse(event) {
-    console.log(event)
+    let xhr = event.detail.xhr;
+    let status = xhr.getResponseHeader("HX-Status");
+    let message = xhr.getResponseHeader("HX-Message");
+    if (status === "202") {
+        return ;
+    } else if (status === "200") {
+        alert(message); // Show the success message
+        document.getElementById("form-div").reset();
+        setTimeout(() => {
+            window.location.reload(); // Forces full reload after redirect
+        }, 100); // Small delay to ensure redirection is processed
+    } else if (status === "400") {
+        alert(message); // Show the error message
+    } else {
+        alert("Something went wrong. Please try again.");
+    }
 }
 

@@ -4,12 +4,12 @@
             <h1>ABCo-op</h1>
             <button class="change-btn" type="submit" hx-post="/dashboard-user/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data">{{ .user }}</button>
             <button class="change-btn" type="submit" hx-post="/dashboard-Account/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data">Accounts</button>
-            <button class="change-btn" type="submit" hx-post="/dashboard-loan/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data">Loans</button>
+            <button class="change-btn" type="submit" hx-post="/dashboard-loan/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data" hx-on::after-request="handleResponse(event)">Loans</button>
             <button class="dropdown-btn change-btn">Transactions <i class="fa fa-caret-down"></i></button>
             <div id="dropdown-options">
-                <button class="change-btn" type="submit" hx-post="/dashboard-deposits/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data">Deposits</button>
-                <button class="change-btn" type="submit" hx-post="/dashboard-payments/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data">Payments</button>
-                <button class="change-btn" type="submit" hx-post="/dashboard-liquidations/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data">Liquidations</button>
+                <button class="change-btn" type="submit" hx-post="/dashboard-deposits/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data" hx-on::after-request="handleResponse(event)">Deposits</button>
+                <button class="change-btn" type="submit" hx-post="/dashboard-payments/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data" hx-on::after-request="handleResponse(event)">Payments</button>
+                <button class="change-btn" type="submit" hx-post="/dashboard-liquidations/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data" hx-on::after-request="handleResponse(event)">Liquidations</button>
             </div>
             {{ if eq .admin "T" }} 
                 <button class="change-btn" type="submit" hx-post="/dashboard-closure/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data">Closure</button>

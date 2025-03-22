@@ -108,8 +108,11 @@ func (user *Users) Update(db *sqlx.DB) error {
 func (user *Users) Fetch(db *sqlx.DB) error {
 	err := db.Get(user, `SELECT * FROM users WHERE user_id=? AND password=?`, user.UserId, user.Password)
 	if err != nil {
-		return fmt.Errorf("Crash while fetching user\nerr.Error(): %v\n", err.Error())
+		return fmt.Errorf("The user you are searching was not found!\nerr.Error(): %v\n", err.Error())
 	}
+    if !user.IsActive {
+        return fmt.Errorf("The user you are searching was not found!\nerr.Error(): The user has retire from the company")
+    }
 
 	return nil
 }
@@ -279,7 +282,7 @@ func (PT *PaymentTransaction) Insert(db *sqlx.DB) error {
             PT.TransactionList[i].Amount,
             PT.TransactionList[i].Comment,
             PT.Payment.PaymentId,
-            PT.Payment.PaymentId)
+            PT.Payment.LoanId)
 
         if err != nil {
             return fmt.Errorf("Crash while inserting #%d payment transaction!\nerr.Error(): %v\n", i, err.Error())

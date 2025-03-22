@@ -122,7 +122,7 @@ func GetLoanIdOfUser(id string) (string, error) {
     var loanId string
 	err = conn.Get(&loanId, `SELECT loan_id FROM loans l WHERE l.USER_ID = ? AND l.IS_PAYED = FALSE`, id)
 	if err != nil {
-		return "", fmt.Errorf("Crash while getting the loan_id\nerr.Error(): %v\n", err.Error())
+        return "", fmt.Errorf("Couldn't fetch the loan id, please check if you have one active on the 'loans' tab!  error(): %v\n", err.Error())
 	}
 
 	return loanId, nil
