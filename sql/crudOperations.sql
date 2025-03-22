@@ -79,13 +79,26 @@ BEGIN
     DELETE FROM users WHERE user_id = v_user_id;
 END;
 
-CREATE OR REPLACE PROCEDURE sp_grant_admin_to(v_user_id CHAR(8), v_admin BOOLEAN)
+CREATE OR REPLACE PROCEDURE sp_grant_admin_to(v_user_id CHAR(8), v_admin BOOLEAN DEFAULT TRUE)
 LANGUAGE SQL
 BEGIN
 	UPDATE users SET
 	 is_admin = v_admin
 	WHERE user_id = v_user_id;
 END;
+
+CREATE OR REPLACE PROCEDURE sp_create_admin()
+LANGUAGE SQL
+BEGIN
+	DECLARE v_user_id CHAR(8);
+	CALL sp_insert_user(v_user_id, 'Kris6004', 'Josue', 'Gabriel', 'Delcid', 'Reyes', 
+						'N/a', '7th street', '22 avenue', 'San Pedro Sula', 'Cortes', 'N/A', 'josuedelcid325@gmail.com',
+						'joshdelcid325@gmail.com', '2004-11-09'::DATE, CURRENT_DATE, NULL, CURRENT_TIMESTAMP, 'ADMIN', CURRENT_TIMESTAMP);	
+	CALL sp_grant_admin_to(v_user_id);
+END;
+
+CALL sp_create_admin();
+DROP PROCEDURE sp_create_admin;
 
 CREATE OR REPLACE PROCEDURE sp_insert_phone(
     IN v_user_id CHAR(8),
@@ -164,5 +177,95 @@ CREATE OR REPLACE PROCEDURE sp_delete_loan(v_loan_id CHAR(16))
 LANGUAGE SQL
 BEGIN
     DELETE FROM loans WHERE loan_id = v_loan_id;
+END;
+
+CREATE OR REPLACE PROCEDURE sp_payment_transaction(
+	OUT v_transaction_id VARCHAR(20),
+	IN v_account_id CHAR(12),
+	IN v_transaction_date DATE,
+	IN v_transaction_ammount NUMERIC(8,2),
+	IN v_transaction_comment VARCHAR(255),
+	IN v_payment_id INT
+)
+LANGUAGE SQL
+BEGIN ATOMIC
+	CALL sp_retire_money(v_transaction_id,
+	v_account_id,
+	v_transaction_date,
+	v_transaction_ammount,
+	v_transaction_comment);
+
+	INSERT INTO payment_transactions(payment_id, transaction_id)
+	VALUES (v_payment_id, v_transaction_id);
+END;
+
+CREATE OR REPLACE PROCEDURE sp_retire_money(
+	OUT v_transaction_id VARCHAR(20),
+	IN v_account_id CHAR(12),
+	IN v_transaction_date DATE,
+	IN v_transaction_ammount NUMERIC(8,2),
+	IN v_transaction_comment VARCHAR(255)
+)
+LANGUAGE SQL
+BEGIN ATOMIC
+	IF v_transaction_ammount < 0 THEN
+		SIGNAL SQLSTATE '45000'	SET MESSAGE_TEXT = 'The final account capital cannot be negative!';	
+	END IF;
+
+	SELECT transaction_id
+    INTO v_transaction_id FROM FINAL TABLE (
+        INSERT INTO transactions(account_id, transaction_date, transaction_ammount, transaction_comment)
+        VALUES(v_account_id, v_transaction_date, v_transaction_ammount, v_transaction_comment)
+    );
+	
+	IF (SELECT balance FROM accounts WHERE account_id = v_account_id) < v_transaction_ammount THEN 
+		SIGNAL SQLSTATE '45000'	SET MESSAGE_TEXT = 'Not enough money on the account balance';	
+	END IF;
+
+	SET v_transaction_ammount = v_transaction_ammount * -1;
+	
+	UPDATE accounts
+	SET balance = balance + v_transaction_ammount
+	WHERE account_id  = v_account_id;
+END;
+
+CREATE OR REPLACE PROCEDURE sp_create_transaction(    
+	OUT v_transaction_id VARCHAR(20),
+	IN v_account_id CHAR(12),
+	IN v_transaction_date DATE,
+	IN v_transaction_ammount NUMERIC(8,2),
+	IN v_transaction_comment VARCHAR(255)
+)
+LANGUAGE SQL
+BEGIN ATOMIC
+	DECLARE user_cant INT;
+
+	IF v_transaction_ammount < 0 THEN
+		SIGNAL SQLSTATE '45000'	SET MESSAGE_TEXT = 'The final account capital cannot be negative!';	
+	END IF;
+	
+  	SELECT COALESCE(COUNT(t.account_id) + 1, 1) 
+	INTO user_cant FROM transactions t
+  	WHERE t.account_id = v_account_id;
+
+  	SET v_transaction_id = v_account_id || '-' || CAST(user_cant AS VARCHAR(5));
+
+    INSERT INTO transactions(transaction_id, account_id, transaction_date, transaction_ammount, transaction_comment)
+    VALUES(v_transaction_id, v_account_id, v_transaction_date, v_transaction_ammount, v_transaction_comment);
+		
+	UPDATE accounts
+	SET balance = balance + v_transaction_ammount
+	WHERE account_id  = v_account_id;
+END;
+
+CREATE OR REPLACE PROCEDURE sp_change_transaction_comment(
+    IN v_transaction_id VARCHAR(20),
+	IN v_transaction_comment VARCHAR(255)
+)
+LANGUAGE SQL
+BEGIN
+    UPDATE transactions 
+    SET transaction_comment = v_transaction_comment
+    WHERE transaction_id = v_transaction_id;
 END;
 

@@ -12,50 +12,130 @@ import (
 	"time"
 )
 
+func requestPayment(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Starting payment request")
+
+	if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+	}
+
+	transaction := CreateTransaction(r)
+	payNo := r.PostFormValue("payment-number")
+
+	payId, err := backend.GetPaymentIdOf(r.PostFormValue("loan-id"), payNo)
+	if err != nil {
+		fmt.Println(err.Error())
+	    w.Header().Set("HX-Status", "409")
+        w.Header().Set("HX-Message", err.Error())
+        w.WriteHeader(http.StatusConflict)
+    }
+    
+    payment := backend.Payments{
+        PaymentId: payId,
+    }
+
+	PT := backend.PaymentTransaction{
+		Payment:       payment,
+		TransactionList: []backend.Transactions{transaction},
+	}
+	fmt.Println(PT)
+	err = backend.Insert(&PT)
+	if err != nil {
+		fmt.Println(err.Error())
+	    w.Header().Set("HX-Status", "409")
+        w.Header().Set("HX-Message", err.Error())
+        w.WriteHeader(http.StatusNotFound)
+	    return
+    }
+
+    sucMsg := fmt.Sprintf("Transaction complete!\nTransaction id: %s\tTransaction amount: %f\n", transaction.TransactionId, transaction.Amount)
+    w.Header().Set("hx-status", "200")
+    w.Header().Set("hx-message", sucMsg)
+    w.WriteHeader(http.StatusOK)
+}
+
+func requestDeposit(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Starting deposit request")
+
+	if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+	}
+
+	transaction := CreateTransaction(r)
+
+	err := backend.Insert(&transaction)
+	if err != nil {
+		fmt.Println(err.Error())
+	    w.Header().Set("HX-Status", "409") 
+        w.Header().Set("HX-Message", err.Error())
+        w.WriteHeader(http.StatusNotFound)
+	}
+
+    sucMsg := fmt.Sprintf("Transaction complete!\nTransaction id: %s\nTransaction amount: %f\n", transaction.TransactionId, transaction.Amount)
+    w.Header().Set("hx-status", "200")
+    w.Header().Set("hx-message", sucMsg)
+    w.WriteHeader(http.StatusOK)
+}
+
+func CreateTransaction(r *http.Request) backend.Transactions {
+	amount, err := strconv.ParseFloat(strings.TrimSpace(r.PostFormValue("amount")), 64)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	description := r.PostFormValue("description")
+
+	transaction := backend.Transactions{
+		Amount:    amount,
+		Comment:   sql.NullString{String: description, Valid: len(description) > 0},
+		AccountId: backend.LoginUser.UserId + r.PostFormValue("destiny-acc"),
+		Date:      time.Now(),
+	}
+
+	return transaction
+}
+
 func requestLoan(w http.ResponseWriter, r *http.Request) {
-    fmt.Println("Starting loan request...")
+	fmt.Println("Starting loan request...")
 
-    if (r.Header.Get("HX-Request") == "") {
-        fmt.Println("\tWASN'T A HX-Request!")
-    }
-   
-    capital, err := strconv.ParseFloat(strings.TrimSpace(r.PostFormValue("capital")), 64)
-    if err != nil {
-        fmt.Println("Crash while parsing capital\nerr.Error():", err.Error())
-        DashboardLoanHandler(w, r)
-        return
-    }
+	if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+	}
 
-    interest, err := strconv.ParseFloat(strings.TrimSpace(r.PostFormValue("interest")), 32)
-    if err != nil {
-        fmt.Println("Crash while parsing interest\nerr.Error():", err.Error())
-        DashboardLoanHandler(w, r)
-        return
-    }
-    periods, err := strconv.Atoi(r.PostFormValue("periods"))
-    if err != nil {
-        fmt.Println("Crash while parsin periods\nerr.Error():", err.Error())
-        DashboardLoanHandler(w, r)
-        return
-    }
+	capital, err := strconv.ParseFloat(strings.TrimSpace(r.PostFormValue("capital")), 64)
+	if err != nil {
+		fmt.Println("Crash while parsing capital\nerr.Error():", err.Error())
+		DashboardLoanHandler(w, r)
+		return
+	}
 
-    var loan backend.Loans = backend.Loans{
-        UserId: backend.LoginUser.UserId,
-        Capital: capital,
-        Periods: periods, 
-        Interest: float32(interest/100),
-    }; 
+	var interest float32 = 0.15
+	if r.PostFormValue("loan-type") == "automatic" {
+		interest = 0.10
+	}
 
-    err = backend.Insert(&loan)
-    if err != nil {
-        fmt.Println(err.Error())        
-        DashboardLoanHandler(w, r)
-        return
-    }
+	periods, err := strconv.Atoi(r.PostFormValue("periods"))
+	if err != nil {
+		fmt.Println("Crash while parsin periods\nerr.Error():", err.Error())
+		DashboardLoanHandler(w, r)
+		return
+	}
 
-    fmt.Println("Loan id:", loan.LoanId)
-    backend.LoginUser.LoanId = loan.LoanId
-    DashboardLoanHandler(w, r)
+	var loan backend.Loans = backend.Loans{
+		UserId:   backend.LoginUser.UserId,
+		Capital:  capital,
+		Periods:  periods,
+		Interest: interest,
+	}
+
+	err = backend.Insert(&loan)
+	if err != nil {
+		fmt.Println(err.Error())
+		DashboardLoanHandler(w, r)
+		return
+	}
+
+	fmt.Println("Loan id:", loan.LoanId)
+	DashboardLoanHandler(w, r)
 }
 
 func registerUser(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +186,8 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 	err := backend.Insert(&user)
 	if err != nil {
 		fmt.Println(err.Error())
-		w.WriteHeader(http.StatusBadGateway)
+	    
+        w.WriteHeader(http.StatusBadGateway)
 		return
 	}
 	fmt.Println("your id is:", user.UserId)
@@ -144,14 +225,6 @@ func verifyUser(w http.ResponseWriter, r *http.Request) {
 	backend.LoginUser.Password = user.Password
 	backend.LoginUser.Name = user.FirstName + " " + user.FirstLastname
 	backend.LoginUser.Admin = user.Admin
-    loanId, err := backend.GetLoanIdOfUser(user.UserId)   
-    if err != nil {
-        fmt.Println(err.Error())
-        backend.LoginUser.LoanId = ""
-    } else {
-        backend.LoginUser.LoanId = loanId
-    }
-    
 
 	w.Header().Set("HX-Location", "/dashboard")
 	w.WriteHeader(http.StatusOK)
@@ -212,24 +285,20 @@ func stringBool(admin bool) string {
 	return "F"
 }
 
-func getBasicDashboardInfo(dashOption string) (map[string]any, string) {
-	return map[string]any{
-        "title":     "Dashboard " + dashOption + " - ABCo-op",
-		"stylePath": "dashboard.css",
-		"user":      backend.LoginUser.Name,
-		"admin":     stringBool(backend.LoginUser.Admin),
-	}, "./templates/dashboard.html"
-}
-
 func DashboardUserHandler(w http.ResponseWriter, r *http.Request) {
 	if len(backend.LoginUser.UserId) == 0 {
 		fmt.Println("Please login first")
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 		return
 	}
-	content, path := getBasicDashboardInfo("users")
+	content := map[string]any{
+		"title":     "Dashboard - ABCo-op",
+		"stylePath": "dashboard.css",
+		"user":      backend.LoginUser.Name,
+		"admin":     stringBool(backend.LoginUser.Admin),
+	}
 
-    RenderTemplate(w, content, path, "./templates/DashboardOptions/user.html")
+	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/user.html")
 }
 
 func DashboardLoanHandler(w http.ResponseWriter, r *http.Request) {
@@ -238,29 +307,120 @@ func DashboardLoanHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 		return
 	}
-	content, path := getBasicDashboardInfo("loans")
-    content["loanActive"] = stringBool(backend.LoginUser.LoanId != "")
+    loanId, err := backend.GetLoanIdOfUser(backend.LoginUser.UserId)
+	if err != nil {
+		fmt.Println(err.Error())
+	} 
+	content := map[string]any{
+		"admin": stringBool(backend.LoginUser.Admin),
+        "loanActive": stringBool(loanId != ""),
+	}
 
-    if (content["loanActive"] == "T") {
-        payments, err := backend.FetchPayments(backend.LoginUser.LoanId)
-        if err != nil {
-            fmt.Println(err.Error())
-        }
+	if content["loanActive"] == "T" {
+		payments, err := backend.FetchPayments(loanId)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		content["payments"] = payments
 
-        content["payments"] = payments 
+		loan := backend.Loans{LoanId: loanId}
+		err = backend.Fetch(&loan)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		// We change the UserId to the name of the user to make it more user friendly
+		loan.UserId = backend.LoginUser.Name
+		content["loanDate"] = loan.Date.Format("2006-02-03")
+		content["loan"] = loan
 
-        loan := backend.Loans{LoanId: backend.LoginUser.LoanId}
-        err = backend.Fetch(&loan)
-        if err != nil {
-            fmt.Println(err.Error())
-        }
-        // We change the UserId to the name of the user to make it more user friendly
-        loan.UserId = backend.LoginUser.Name
-        content["loanDate"] = loan.Date.Format("2006-02-03")        
-        content["loan"] = loan
+	}
+	maxAmount, err := backend.GetBalanceOf(backend.LoginUser.UserId + "-CAR")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	content["MaxAmount"] = maxAmount
+
+	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/loan.html")
+}
+
+func DashboardDepositHandle(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		fmt.Println("Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+	content := map[string]any{
+		"admin":     stringBool(backend.LoginUser.Admin),
+		"type":      "Deposit",
+		"endpoint":  "/request-deposit/",
+		"action":    "deposit",
+		"MinAmount": 200,
+	}
+	content["MaxAmount"] = 10000
+	content["UserName"] = backend.LoginUser.Name
+	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/transaction.html")
+}
+
+func DashboardPaymentHandle(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		fmt.Println("Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+
+	content := map[string]any{
+		"admin":     stringBool(backend.LoginUser.Admin),
+		"type":      "Payment",
+		"endpoint":  "/request-payment/",
+		"action":    "pay",
+		"MinAmount": 0.01,
+	}
+	content["UserName"] = backend.LoginUser.Name
+    loanId, err := backend.GetLoanIdOfUser(backend.LoginUser.UserId)
+    if err != nil {
+		fmt.Println(err.Error())
+	    w.Header().Set("HX-Status", "200")
+        w.Header().Set("HX-Message", err.Error())
+        w.WriteHeader(http.StatusNotFound)
+        return
     }
 
-	RenderTemplate(w, content, path, "./templates/DashboardOptions/loan.html")
+	payments, err := backend.FetchPayments(loanId)
+	if err != nil {
+		fmt.Println(err.Error())
+	    w.Header().Set("HX-Status", "200")
+        w.Header().Set("HX-Message", err.Error())
+        w.WriteHeader(http.StatusNotFound)
+        return
+    }
+	content["MaxAmount"] = payments[0].AmountToPay
+	content["payments"] = payments
+	content["loanId"] = loanId
+
+	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/transaction.html")
+}
+
+func DashboardLiquidationHandle(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		fmt.Println("Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+
+	content := map[string]any{
+		"admin":     stringBool(backend.LoginUser.Admin),
+		"type":      "Liquidation",
+		"endpoint":  "/request-liquidation/",
+		"action":    "retire",
+		"MinAmount": 0.01,
+	}
+	balance, err := backend.GetBalanceOf(backend.LoginUser.UserId + "-CAP")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	content["MaxAmount"] = balance
+	content["UserName"] = backend.LoginUser.Name
+	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/transaction.html")
 }
 
 func main() {
@@ -269,9 +429,14 @@ func main() {
 
 	mux.Handle("/static/", http.StripPrefix("/static/", static))
 
-    mux.HandleFunc("/request-loan/", requestLoan)
+	mux.HandleFunc("/request-payment/", requestPayment)
+	mux.HandleFunc("/request-deposit/", requestDeposit)
+	mux.HandleFunc("/request-loan/", requestLoan)
 	mux.HandleFunc("/register-user/", registerUser)
 	mux.HandleFunc("/verify-user/", verifyUser)
+	mux.HandleFunc("/dashboard-deposits/", DashboardDepositHandle)
+	mux.HandleFunc("/dashboard-liquidations/", DashboardLiquidationHandle)
+	mux.HandleFunc("/dashboard-payments/", DashboardPaymentHandle)
 	mux.HandleFunc("/dashboard-user/", DashboardUserHandler)
 	mux.HandleFunc("/dashboard-loan/", DashboardLoanHandler)
 	mux.HandleFunc("/dashboard", DashboardUserHandler)
@@ -281,4 +446,3 @@ func main() {
 	fmt.Println("Server started at:\nlocalhost:5312/")
 	log.Fatal(http.ListenAndServe(":5412", mux))
 }
-

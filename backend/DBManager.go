@@ -10,9 +10,8 @@ import (
 type LoginData struct {
 	UserId   string
 	Password string
-	Name     string
+    Name     string
 	Admin    bool
-	LoanId   string
 }
 
 var LoginUser LoginData = LoginData{UserId: ""}
@@ -26,24 +25,75 @@ func getConnection() (*sqlx.DB, error) {
 	return db, nil
 }
 
+func GetPaymentIdOf(loanId string, paymentNumber string) (int, error) {
+	con, err := getConnection()
+	if err != nil {
+		return 0, err
+	}
+    defer con.Close()
+    var paymentId int
+    query := `SELECT PAYMENT_ID FROM PAYMENTS WHERE PAYMENTS.LOAN_ID = ? AND PAYMENTS.PAYMENT_NUMBER = ?`
+    err = con.Get(&paymentId, query, loanId, paymentNumber)
+    if err != nil {
+        return 0, fmt.Errorf("Crash while fetching payment id!\nerr.Error(): %v\n", err.Error())
+    }
+    return paymentId, nil
+}
+
 func FetchPayments(loanId string) ([]Payments, error) {
 	con, err := getConnection()
 	if err != nil {
 		return nil, err
 	}
     defer con.Close()
-    query := `SELECT * FROM payments WHERE loan_id = ?`
+    query := `SELECT 
+            p.PAYMENT_ID, 
+                MAX(p.LOAN_ID) LOAN_ID, 
+                MAX(p.PAYMENT_NUMBER) PAYMENT_NUMBER, 
+                MAX(p.DEADLINE) DEADLINE, 
+                MAX(p.INTEREST_TO_PAY) INTEREST_TO_PAY, 
+                MAX(p.CAPITAL_TO_PAY) CAPITAL_TO_PAY, 
+                MAX(p.AMOUNT_TO_PAY) AMOUNT_TO_PAY, 
+                MAX(p.IS_PAYED) IS_PAYED, 
+                COALESCE(SUM(t.TRANSACTION_AMMOUNT), 0) AS AMOUNT_PAYED,
+                (MAX(p.AMOUNT_TO_PAY) - COALESCE(SUM(t.TRANSACTION_AMMOUNT), 0)) AS REMAINING_AMOUNT
+            FROM payments p
+                LEFT JOIN payment_transactions pt
+                    ON p.PAYMENT_ID = pt.PAYMENT_ID
+                LEFT JOIN transactions t
+                    ON pt.TRANSACTION_ID = t.TRANSACTION_ID
+            WHERE p.LOAN_ID = ? AND p.IS_PAYED = FALSE
+                GROUP BY p.PAYMENT_ID`
     payments := []Payments{}
     err = con.Select(&payments, query, loanId)
     if err != nil {
         return nil, fmt.Errorf("Error while getting the list of payments!\nerr.Error(): %v\n", err.Error()) 
     }
 
-    for i := 0; i < len(payments); i++ {
+    if len(payments) == 0 {
+        return nil, fmt.Errorf("There are no payments left!\nTo access this you'll need a loan first!\n")
+    }
+
+    for i := range payments {
         payments[i].FmtDeadline = payments[i].Deadline.Format("2006-02-03")
     }
 
     return payments, nil
+}
+
+func GetBalanceOf(id string) (float64, error) {
+	con, err := getConnection()
+	if err != nil {
+		return 10000, err
+	}
+    defer con.Close()
+    query := `SELECT balance FROM accounts WHERE account_id = ?`
+    var balance float64
+    err = con.Get(&balance, query, id)
+    if err != nil {
+        return 10000, fmt.Errorf("Crash while fetching the balance on account!\nerr.Error(): %v\n", err.Error())
+    }
+    return balance, nil
 }
 
 func GrantAdminTo(id string, admin bool) error {
@@ -57,22 +107,6 @@ func GrantAdminTo(id string, admin bool) error {
 	_, err = con.Exec(query, id, admin)
 	if err != nil {
 		return fmt.Errorf("There was an error granting admin to %s\nError(): %s\n", id, err.Error())
-	}
-
-	return nil
-}
-
-func MarkLoanAsPayed(id string) error {
-	con, err := getConnection()
-	if err != nil {
-		return err
-	}
-    defer con.Close()
-	query := `CALL sp_mark_loan_as_payed(?)`
-
-	_, err = con.Exec(query, id)
-	if err != nil {
-		return fmt.Errorf("There was an error marking the loan to %s\nError(): %s\n", id, err.Error())
 	}
 
 	return nil
@@ -114,3 +148,4 @@ func Insert(crud Crudeable) error {
 
 	return crud.Insert(con)
 }
+

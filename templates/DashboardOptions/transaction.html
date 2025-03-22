@@ -1,0 +1,53 @@
+{{ define "dashboard-content" }}
+    <h1 class="option-header">{{ .type }}</h1>
+    <form id="form-data">
+        <div class="form-content">
+            <div class="input-div">
+                <p>Amount to {{ .action }}:</p>
+                <input id="MaxAmount" type="number" name="amount" value="{{ .MaxAmount }}" min="{{ .MinAmount }}" max="{{ .MaxAmount }}" step="0.01" oninput="verifyPaymentAmount(this)">
+            </div>
+            <div class="input-div">
+                <p>Description:</p>
+                <textarea type="text" name="description" rows="5" placeholder="Transaction made by: {{ .UserName }}."></textarea>
+            </div>
+            <div class="input-div">
+                <p>Into which account will you deposit?</p>
+                <div class="loan-type">
+                    <label><input type="radio" name="destiny-acc" value="-CAP" checked="checked"> Apportations</label>
+                    {{ if not (eq .type "Payment") }}
+                        <label><input type="radio" name="destiny-acc" value="-CAR"> Savings</label> 
+                    {{ end }}
+                </div>
+            </div>
+            {{ if eq .type "Payment" }}
+                <div class="fl-row"> 
+                    <div class="input-div">
+                        <p>Amount to deposit:</p>
+                        <input type="text" name="loan-id" value="{{ .loanId }}" readonly>
+                    </div>
+                    <div class="input-div">
+                        <p>Amount to deposit:</p>
+                        <select name="payment-number" oninput="changeOption(this)">
+                         {{ range .payments }}
+                            <option value="{{ .PaymentNumber }}">{{ .PaymentNumber }}</option>
+                        {{ end }}
+                        </select>
+                    </div>
+                </div>
+                <div class="input-div">
+                    <p>Remaining amount to pay:</p>
+                    <select id="remaining" name="remaining-pay" disabled>
+                    {{ range .payments }}
+                         <option value="{{ .AmountToPay }}"> {{ .AmountToPay }}</option>
+                    {{ end }}
+                    </select>
+                </div>
+            {{ else if eq .type "Liquidation" }}
+
+            {{ end }}
+        </div>
+        <div class="form-buttons">
+            <input type="submit" id="submit-button"  name="accept-btn" value="Make transaction" hx-post="{{ .endpoint }}" hx-on:click="validateForm(event)" hx-on::after-request="handleResponse(event)">
+        </div>
+    </form>
+{{ end }}

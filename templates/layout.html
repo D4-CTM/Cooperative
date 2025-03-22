@@ -5,20 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="./static/css/{{ .stylePath }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="./static/js/htmx.min.js"></script>
     <title>{{ .title }}</title>
   </head>
   <body>
     {{ template "content" . }}     
   </body>
-  <script id="refresh_js">
-    // This code was generated with chatGPT
-    document.addEventListener("htmx:afterRequest", function(evt) {
-        if (evt.detail.xhr.getResponseHeader("HX-Location")) {
-            setTimeout(() => {
-                window.location.reload(); // Forces full reload after redirect
-            }, 100); // Small delay to ensure redirection is processed
-        }
-    });
-  </script>
+  <script src="./static/js/main.js"></script>
 </html>

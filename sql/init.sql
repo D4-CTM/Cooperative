@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS phone_numbers;
 DROP TABLE IF EXISTS loans;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS payment_transactions;
 DROP TABLE IF EXISTS closures;
 DROP TABLE IF EXISTS payouts;
 DROP TABLE IF EXISTS closure_transactions;
@@ -55,7 +56,7 @@ CREATE TABLE IF NOT EXISTS loans (
 	loan_id CHAR(16) UNIQUE NOT NULL, -- Generated via trigger(user_id + "-PT" + LPAD(nexval(loan_seq), 5, '0')) - done
 	loan_periods INT CHECK (loan_periods <= 12),
 	loan_interest NUMERIC(3,3) NOT NULL DEFAULT 0.15 CHECK (loan_interest BETWEEN 0 AND 1),
-    requested_amount NUMERIC(8,2) NOT NULL CHECK (REQUESTED_AMOUNT > 120),
+    requested_amount NUMERIC(8,2) NOT NULL CHECK (REQUESTED_AMOUNT >= 120),
 	loan_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	is_payed BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (loan_id),
@@ -101,7 +102,7 @@ CREATE TABLE IF NOT EXISTS account_profit (
 -- abonos
 CREATE TABLE IF NOT EXISTS transactions (
 	account_id CHAR(12) NOT NULL,
-	transaction_id VARCHAR(20) UNIQUE NOT NULL,--Generated via trigger (account_id || '-CAP-' || COUNT(account_id) + 1) - done
+	transaction_id VARCHAR(20) UNIQUE NOT NULL,
 	transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	transaction_ammount NUMERIC(8,2) NOT NULL CHECK(transaction_ammount > 0),
 	transaction_comment VARCHAR(255),
@@ -118,11 +119,20 @@ CREATE TABLE IF NOT EXISTS closures (
 	PRIMARY KEY(closure_id)
 );
 
+-- transacciones de pago (realizadas por el usuario)
+CREATE TABLE IF NOT EXISTS payment_transactions (
+	payment_id INT NOT NULL,
+	transaction_id VARCHAR(20) NOT NULL,
+	PRIMARY KEY (transaction_id, payment_id),
+	FOREIGN KEY (payment_id) REFERENCES payments(payment_id),
+	FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id)	
+);
+
 -- Transacciones de cierre
 CREATE TABLE IF NOT EXISTS closure_transactions (
 	closure_id INT NOT NULL,
 	transaction_id VARCHAR(20) NOT NULL,
-	PRIMARY KEY (transaction_id),
+	PRIMARY KEY (transaction_id, closure_id),
 	FOREIGN KEY (closure_id) REFERENCES closures(closure_id),
 	FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id)
 );
@@ -131,7 +141,7 @@ CREATE TABLE IF NOT EXISTS closure_transactions (
 CREATE TABLE IF NOT EXISTS closure_payments (
 	closure_id INT NOT NULL,
 	payment_id INT NOT NULL,
-	PRIMARY KEY (payment_id),
+	PRIMARY KEY (payment_id, closure_id),
 	FOREIGN KEY (closure_id) REFERENCES closures(closure_id),
 	FOREIGN KEY (payment_id) REFERENCES payments(payment_id)
 );
@@ -152,7 +162,7 @@ CREATE TABLE IF NOT EXISTS payouts (
 CREATE TABLE IF NOT EXISTS liquidations (
 	liquidation_id INT NOT NULL UNIQUE GENERATED ALWAYS AS IDENTITY,
 	account_id CHAR(12) NOT NULL,
-	liquidation_type CHAR(1) NOT NULL CHECK (liquidation_type IN ('T', 'F')),
+	liquidation_type CHAR(1) NOT NULL CHECK (liquidation_type IN ('T', 'P')),
 	retirement_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	total_money DECIMAL(8, 2),
 	PRIMARY KEY(liquidation_id),

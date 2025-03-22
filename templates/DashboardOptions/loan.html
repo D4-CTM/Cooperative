@@ -4,23 +4,25 @@
         <form>
             <div class="form-content">
                 <div class="input-div">
+                    <p>Loan type:</p>
+                    <div class="loan-type">
+                        <label><input id="fidu" type="radio" name="loan-type" value="fiduciary" checked="checked"> Fiduciary (15% interest)</label>
+                        <label><input id="auto" type="radio" name="loan-type" value="automatic" oninput="isValid(this)"> Automatic (10% interest)</label> 
+                    </div>
+                </div>
+                <div class="input-div">
                     <p>Loan periods (months):</p>
                     <input type="number" name="periods" value="6" min="0" max="12" oninput="verifyPeriods(this)">
                 </div>
                 <div class="input-div">
-                    <p>Loan interest percentage (1-100):</p>
-                    <input type="number" name="interest" value="15" min="1" max="100" oninput="verifyInterest(this)">
-                </div>
-                <div class="input-div">
                     <p>Requested amount:</p>
-                    <input type="number" name="capital" value="2000", min="1000" max="20000" oninput="verifyAmount(this)">
+                    <input type="number" id="rCapital" name="capital" value="120", min="120" max="{{ .MaxAmount }}" oninput="verifyAmount(this)">
                 </div>
             </div>
             <div class="form-buttons">
-                <input type="button" name="accept-btn" value="request loan" hx-post="/request-loan/" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data"> 
+                <input type="button" name="accept-btn" value="request loan" hx-post="/request-loan/" hx-on:click="validateForm(event)" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data"> 
             </div>
         </form>
-        <script src="./static/js/requestLoan.js"></script>
     {{ else if eq .loanActive "T"}}
         <h1>LOAN DETAILS</h1>
         <table class="loan-details">
@@ -29,6 +31,7 @@
                 <th>Requested by</th>
                 <th>Periods requested</th>
                 <th>Amount requested</th>
+                <th>Interest</th>    
                 <th>Date requested</th>    
             </tr>
             <tr>
@@ -36,17 +39,19 @@
                 <td>{{ .loan.UserId }}</td>
                 <td>{{ .loan.Periods }}</td>
                 <td>{{ .loan.Capital }}</td>
+                <td>{{ .loan.Interest }}</td>
                 <td>{{ .loanDate }}</td>
             </tr>
         </table>
 
         <table class="payment-details">
             <tr>
-                <th>No. </th>
-                <th>deadline </th>
-                <th>IPMT </th>
-                <th>PPMT. </th>
-                <th>PMT </th>
+                <th>No.</th>
+                <th>deadline</th>
+                <th>IPMT</th>
+                <th>PPMT</th>
+                <th>PMT</th>
+                <th class="amount-payed">Amount payed</th>
                 <th>Is payed?</th>
             </tr>
             {{ range .payments }}
@@ -56,6 +61,7 @@
                     <td>{{ .IPMT }}</td>
                     <td>{{ .PPMT }}</td>
                     <td>{{ .PMT }}</td>
+                    <td>{{ .AmountPayed }}</td>
                     <td>{{ .IsPayed }}</td>
                 </tr>
             {{ end }}

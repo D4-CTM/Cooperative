@@ -204,7 +204,9 @@ type Payments struct {
 	PPMT          float64   `db:"CAPITAL_TO_PAY"`
 	PMT           float64   `db:"AMOUNT_TO_PAY"`
 	IsPayed       bool      `db:"IS_PAYED"`
-    FmtDeadline   string
+	AmountPayed   float64   `db:"AMOUNT_PAYED"`
+	AmountToPay   float64   `db:"REMAINING_AMOUNT"`
+	FmtDeadline   string
 }
 
 func (payment *Payments) Fetch(db *sqlx.DB) error {
@@ -212,8 +214,97 @@ func (payment *Payments) Fetch(db *sqlx.DB) error {
 	if err != nil {
 		return fmt.Errorf("Crash while fetching loans\nerr.Error(): %v\n", err.Error())
 	}
-    payment.FmtDeadline = payment.Deadline.Format("2006-02-03")
+	payment.FmtDeadline = payment.Deadline.Format("2006-02-03")
 	return nil
-    
+}
+
+type Transactions struct {
+	AccountId     string         `db:"ACCOUNT_ID"`
+	TransactionId string         `db:"TRANSACTION_ID"`
+	Date          time.Time      `db:"TRANSACTION_DATE"`
+	Amount        float64        `db:"TRANSACTION_AMMOUNT"`
+	Comment       sql.NullString `db:"TRANSACTION_COMMENT"`
+	FmtDate       string
+}
+
+func (transaction *Transactions) Insert(db *sqlx.DB) error {
+	query := `CALL sp_create_transaction(?, ?, ?, ?, ?)`
+	_, err := db.Exec(query,
+		sql.Out{Dest: &transaction.TransactionId},
+		transaction.AccountId,
+		transaction.Date,
+		transaction.Amount,
+		transaction.Comment)
+	if err != nil {
+		return fmt.Errorf("Error when inserting transaction!\n %v\n", err.Error())
+	}
+
+	return nil
+}
+
+func (transaction Transactions) Update(db *sqlx.DB) error {
+	query := `CALL sp_change_transaction_comment(?, ?)`
+	_, err := db.Exec(query,
+		transaction.TransactionId,
+		transaction.Comment)
+	if err != nil {
+		return fmt.Errorf("Error when changing transaction comment!\n %v\n", err.Error())
+	}
+
+	return nil
+}
+
+func (transaction *Transactions) Fetch(db *sqlx.DB) error {
+	err := db.Get(transaction, `SELECT * FROM transactions WHERE transaction_id = ?`, transaction.TransactionId)
+	if err != nil {
+		return fmt.Errorf("Crash while fetching transaction!\nerr.Error() %v\n", err.Error())
+	}
+	transaction.FmtDate = transaction.Date.Format("2006-02-03")
+	return nil
+}
+
+type PaymentTransaction struct {
+	Payment         Payments
+	TransactionList []Transactions
+}
+
+func (PT *PaymentTransaction) Insert(db *sqlx.DB) error {
+    query := `CALL sp_payment_transaction(?, ?, ?, ?, ?, ?, ?)`
+    for i := range PT.TransactionList {
+        fmt.Println("Transaction send:", PT.TransactionList[i]) 
+        _, err := db.Exec(query,
+            sql.Out{Dest: &PT.TransactionList[i].TransactionId},
+            PT.TransactionList[i].AccountId,
+            PT.TransactionList[i].Date,
+            PT.TransactionList[i].Amount,
+            PT.TransactionList[i].Comment,
+            PT.Payment.PaymentId,
+            PT.Payment.PaymentId)
+
+        if err != nil {
+            return fmt.Errorf("Crash while inserting #%d payment transaction!\nerr.Error(): %v\n", i, err.Error())
+        }
+
+        fmt.Printf("\nTransaction #%d done!\n\tTransaction id: %s", i, PT.TransactionList[i].TransactionId)
+    }
+
+    return nil
+}
+
+func (PT *PaymentTransaction) Update(db *sqlx.DB) error {
+    return fmt.Errorf("\nPayment transaction doesn't support updates!\n")
+}
+
+func (PT *PaymentTransaction) Fetch(db *sqlx.DB) error {
+    query := `SELECT t.*
+        FROM PAYMENT_TRANSACTIONS pt
+        JOIN TRANSACTIONS t 
+        ON pt.TRANSACTION_ID = t.TRANSACTION_ID
+        WHERE pt.PAYMENT_ID = ?`
+    err := db.Select(&PT.TransactionList, query, PT.Payment.PaymentId)
+    if err != nil {
+        return fmt.Errorf("Crash while fetching payment transactions!\nerr.Error(): %v\n", err.Error())
+    }
+    return nil
 }
 

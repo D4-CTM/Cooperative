@@ -1,3 +1,4 @@
+
 DROP SEQUENCE user_seq;
 DROP SEQUENCE loan_seq;
 
@@ -63,20 +64,6 @@ BEGIN ATOMIC
 	  SET capital = capital - PPMT;
     SET i = i + 1;
   END WHILE;
-END;
-
-CREATE OR REPLACE TRIGGER tr_transactions_id
-BEFORE INSERT ON transactions
-REFERENCING NEW AS n
-FOR EACH ROW MODE DB2SQL
-BEGIN
-  DECLARE user_cant BIGINT;
-    
-  SELECT COALESCE(COUNT(t.account_id) + 1, 1) 
-  INTO user_cant FROM transactions t
-  WHERE t.account_id = n.account_id;
-
-  SET n.transaction_id = n.account_id || '-' || user_cant;
 END;
 
 CREATE OR REPLACE TRIGGER tr_get_creator_of_account
