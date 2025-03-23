@@ -165,18 +165,30 @@ BEGIN
     WHERE loan_id = v_loan_id;
 END;
 
-CREATE OR REPLACE PROCEDURE sp_mark_loan_as_payed(v_loan_id CHAR(16))
-LANGUAGE SQL
-BEGIN
-	UPDATE loans SET
-		is_payed = TRUE
-	WHERE loan_id = v_loan_id;
-END;
-
 CREATE OR REPLACE PROCEDURE sp_delete_loan(v_loan_id CHAR(16))
 LANGUAGE SQL
 BEGIN
     DELETE FROM loans WHERE loan_id = v_loan_id;
+END;
+
+CREATE OR REPLACE FUNCTION fn_calculate_remaining_payment(IN v_payment_id INT)
+RETURNS NUMERIC(8,2)
+LANGUAGE SQL
+NOT DETERMINISTIC
+BEGIN
+	DECLARE amount_to_pay NUMERIC(8, 2);
+	
+	SELECT 
+		(MAX(p.AMOUNT_TO_PAY) - COALESCE(SUM(t.TRANSACTION_AMMOUNT), 0)) AS AMOUNT_PAYED
+	INTO amount_to_pay
+	FROM payments p
+	LEFT JOIN PAYMENT_TRANSACTIONS  pt
+		ON pt.PAYMENT_ID  = p.PAYMENT_ID	
+	LEFT JOIN transactions t
+		ON pt.TRANSACTION_ID = t.TRANSACTION_ID
+	where v_payment_id = p.PAYMENT_ID;
+	
+	RETURN amount_to_pay;
 END;
 
 CREATE OR REPLACE PROCEDURE sp_payment_transaction(
@@ -185,10 +197,26 @@ CREATE OR REPLACE PROCEDURE sp_payment_transaction(
 	IN v_transaction_date DATE,
 	IN v_transaction_ammount NUMERIC(8,2),
 	IN v_transaction_comment VARCHAR(255),
-	IN v_payment_id INT
-)
+	IN v_payment_id INT,
+	IN v_loan_id CHAR(16))
 LANGUAGE SQL
 BEGIN ATOMIC
+	DECLARE lv_error_msg VARCHAR(255);
+	DECLARE lv_amount_to_pay NUMERIC(8,2);
+	DECLARE lv_payments_done INT;
+	DECLARE lv_loan_periods INT;
+
+	SELECT fn_calculate_remaining_payment(v_payment_id)
+	INTO lv_amount_to_pay
+	FROM SYSIBM.SYSDUMMY1;
+
+	IF lv_amount_to_pay IS NULL THEN
+		SIGNAL SQLSTATE '45000'	SET MESSAGE_TEXT = 'Could not calculate the amount needed for this payment, please check the sended payment id!';
+	END IF;
+	IF lv_amount_to_pay < v_transaction_ammount THEN
+		SIGNAL SQLSTATE '45000'	SET MESSAGE_TEXT = 'The amount send for this transaction exceeds the amount of money needed to pay it, please input the correct amount!';	
+	END IF;
+	
 	CALL sp_retire_money(v_transaction_id,
 	v_account_id,
 	v_transaction_date,
@@ -197,7 +225,36 @@ BEGIN ATOMIC
 
 	INSERT INTO payment_transactions(payment_id, transaction_id)
 	VALUES (v_payment_id, v_transaction_id);
+	
+	SELECT COALESCE(MAX(L.LOAN_PERIODS), 0), COUNT(P.IS_PAYED)
+	INTO lv_loan_periods, lv_payments_done
+	FROM PAYMENTS P
+	JOIN LOANS L
+	ON L.LOAN_ID = P.LOAN_ID
+	WHERE P.IS_PAYED = TRUE AND L.LOAN_ID = v_loan_id;
+	
+	IF (lv_amount_to_pay - v_transaction_ammount) = 0 THEN
+		UPDATE payments p
+		SET p.IS_PAYED = TRUE
+		WHERE p.payment_id = v_payment_id;
+	
+		SET lv_payments_done = lv_payments_done + 1;
+	END IF;
+		
+	IF lv_payments_done = lv_loan_periods THEN 
+		UPDATE loans SET
+			is_payed = TRUE
+		WHERE loan_id = v_loan_id;
+	END IF;
 END;
+
+DELETE FROM payment_transactions pt WHERE pt.PAYMENT_ID = 26;
+
+SELECT COALESCE(MAX(L.LOAN_PERIODS), 0), COUNT(P.IS_PAYED)
+FROM PAYMENTS P
+JOIN LOANS L
+ON L.LOAN_ID = P.LOAN_ID
+WHERE P.IS_PAYED = TRUE AND L.LOAN_ID = 'AF-00001-PT00021';
 
 CREATE OR REPLACE PROCEDURE sp_retire_money(
 	OUT v_transaction_id VARCHAR(20),
@@ -208,15 +265,20 @@ CREATE OR REPLACE PROCEDURE sp_retire_money(
 )
 LANGUAGE SQL
 BEGIN ATOMIC
+	DECLARE user_cant INT;
+
 	IF v_transaction_ammount < 0 THEN
 		SIGNAL SQLSTATE '45000'	SET MESSAGE_TEXT = 'The final account capital cannot be negative!';	
 	END IF;
 
-	SELECT transaction_id
-    INTO v_transaction_id FROM FINAL TABLE (
-        INSERT INTO transactions(account_id, transaction_date, transaction_ammount, transaction_comment)
-        VALUES(v_account_id, v_transaction_date, v_transaction_ammount, v_transaction_comment)
-    );
+  	SELECT COALESCE(COUNT(t.account_id) + 1, 1) 
+	INTO user_cant FROM transactions t
+  	WHERE t.account_id = v_account_id;
+
+  	SET v_transaction_id = v_account_id || '-' || CAST(user_cant AS VARCHAR(5));
+
+    INSERT INTO transactions(transaction_id, account_id, transaction_date, transaction_ammount, transaction_comment)
+    VALUES(v_transaction_id, v_account_id, v_transaction_date, v_transaction_ammount, v_transaction_comment);
 	
 	IF (SELECT balance FROM accounts WHERE account_id = v_account_id) < v_transaction_ammount THEN 
 		SIGNAL SQLSTATE '45000'	SET MESSAGE_TEXT = 'Not enough money on the account balance';	
@@ -256,6 +318,8 @@ BEGIN ATOMIC
 	UPDATE accounts
 	SET balance = balance + v_transaction_ammount
 	WHERE account_id  = v_account_id;
+	
+	
 END;
 
 CREATE OR REPLACE PROCEDURE sp_change_transaction_comment(
@@ -268,4 +332,153 @@ BEGIN
     SET transaction_comment = v_transaction_comment
     WHERE transaction_id = v_transaction_id;
 END;
+
+CREATE OR REPLACE PROCEDURE sp_make_remaining_transactions(
+	IN v_month INT,
+	IN v_year INT,
+	IN v_closure_id INT
+)
+LANGUAGE SQL
+BEGIN ATOMIC
+	DECLARE lv_account_id CHAR(12);
+	DECLARE lv_deposited_amount NUMERIC(8,2);
+	DECLARE lv_transaction_id VARCHAR(20);
+
+	DECLARE crsr_transactions_finished INT DEFAULT 0;
+	DECLARE lv_accounts_cursor CURSOR
+	FOR SELECT account_id, deposited_amount
+	FROM (
+		SELECT a.ACCOUNT_ID, COALESCE(SUM(t.TRANSACTION_AMMOUNT), 0) AS deposited_amount
+		FROM accounts a
+		LEFT JOIN TRANSACTIONS t
+		ON a.ACCOUNT_ID  = t.ACCOUNT_ID
+		JOIN USERS u 
+		ON u.USER_ID = a.USER_ID
+		WHERE 
+			((MONTH(t.TRANSACTION_DATE) = v_month AND 
+			YEAR(t.TRANSACTION_DATE) = v_year) OR
+			t.ACCOUNT_ID IS NULL) AND 
+			u.IS_ACTIVE = TRUE
+		GROUP BY a.ACCOUNT_ID)
+	WHERE DEPOSITED_AMOUNT < 200;
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET crsr_transactions_finished = 1;
+	
+	OPEN lv_accounts_cursor;
+
+    FETCH lv_accounts_cursor INTO lv_account_id, lv_deposited_amount;
+    
+    WHILE crsr_transactions_finished = 0 DO   			
+		CALL sp_create_transaction(lv_transaction_id, lv_account_id, CURRENT_DATE, (200 - lv_deposited_amount), 'Transaction made during the monthly closure!');
+    
+		INSERT INTO CLOSURE_TRANSACTIONS(CLOSURE_ID, TRANSACTION_ID)
+		VALUES(v_closure_id, lv_transaction_id);
+		
+	    FETCH lv_accounts_cursor INTO lv_account_id, lv_deposited_amount;
+    END WHILE;
+	
+	CLOSE lv_accounts_cursor;
+END;
+
+CREATE OR REPLACE PROCEDURE sp_make_monthly_payment(
+	IN v_month INT,
+	IN v_year INT,
+	IN v_closure_id INT	
+)
+LANGUAGE SQL
+BEGIN ATOMIC
+	DECLARE lv_account_id CHAR(12);
+	DECLARE lv_amount_to_pay NUMERIC(8,2);
+	DECLARE lv_account_balance NUMERIC(8,2);
+	DECLARE lv_transaction_id VARCHAR(20);
+	DECLARE lv_payment_id INT;
+	DECLARE lv_loan_id CHAR(16);
+	DECLARE lv_user_id CHAR(8);
+	DECLARE crsr_accounts_finished INT DEFAULT 0;
+
+	DECLARE lv_accounts_cursor CURSOR
+	FOR SELECT p.PAYMENT_ID, P.AMOUNT_TO_PAY, l.LOAN_ID, u.USER_ID
+	FROM PAYMENTS p 
+	JOIN LOANS l
+	ON l.LOAN_ID = p.LOAN_ID
+	JOIN USERS u
+	ON u.USER_ID = l.USER_ID
+	WHERE 
+		MONTH(p.DEADLINE) = v_month AND
+		YEAR(p.DEADLINE) = v_year AND 
+		p.IS_PAYED = FALSE AND
+		u.IS_ACTIVE = TRUE;
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET crsr_accounts_finished = 1;
+
+	OPEN lv_accounts_cursor;
+
+    FETCH lv_accounts_cursor INTO lv_payment_id, lv_amount_to_pay, lv_loan_id, lv_user_id;
+    
+    WHILE crsr_accounts_finished = 0 DO
+	    SELECT a.balance
+	    INTO lv_account_balance
+		FROM ACCOUNTS a
+		WHERE a.ACCOUNT_TYPE = 'CAP' AND
+			lv_user_id = a.USER_ID;
+    
+		IF lv_account_balance > lv_amount_to_pay THEN
+			SET lv_account_balance = lv_amount_to_pay;
+		END IF;
+			
+    	CALL sp_payment_transaction(
+		lv_transaction_id,
+		lv_account_id,
+		CURRENT_DATE,
+		lv_account_balance,
+		'Transaction made during the monthly closure to cover this month loan payment',
+		lv_payment_id,
+		lv_loan_id);
+
+		INSERT INTO CLOSURE_TRANSACTIONS(CLOSURE_ID, TRANSACTION_ID)
+		VALUES(v_closure_id, lv_transaction_id);
+		
+		INSERT INTO CLOSURE_PAYMENTS(PAYMENT_ID, CLOSURE_ID)
+		VALUES(lv_payment_id, v_closure_id);
+		
+	    FETCH lv_accounts_cursor INTO lv_payment_id, lv_amount_to_pay, lv_loan_id, lv_user_id;
+    END WHILE;
+	
+	CLOSE lv_accounts_cursor;
+END;
+
+CREATE OR REPLACE PROCEDURE sp_generate_monthly_closure(
+	IN v_month INT,
+	IN v_year INT,
+	IN description VARCHAR(255)
+)
+LANGUAGE SQL
+BEGIN ATOMIC
+	DECLARE lv_closure_id INT;
+
+	IF NOT EXISTS (SELECT 1 FROM closures WHERE closure_month = v_month AND closure_year = v_year) THEN
+		SELECT closure_id
+		INTO lv_closure_id
+		FROM FINAL TABLE (
+			INSERT INTO closures(closure_month, closure_year, description)
+			VALUES(v_month, v_year, description));
+	ELSE
+		SELECT closure_id
+		INTO lv_closure_id
+		FROM closures
+		WHERE closure_month = v_month AND closure_year = v_year;
+	END IF;
+
+	CALL sp_make_remaining_transactions(v_month, v_year, lv_closure_id);
+	CALL sp_make_monthly_payment(v_month, v_year, lv_closure_id);
+END;
+
+CALL sp_generate_monthly_closure(3, 2025, 'Monthly closure done the 3/22/2025');
+
+SELECT COALESCE(SUM(t.TRANSACTION_AMMOUNT), 0) AS total
+FROM TRANSACTIONS t
+LEFT JOIN ACCOUNTS a
+ON t.ACCOUNT_ID = a.ACCOUNT_ID
+WHERE 
+	EXTRACT(MONTH FROM t.TRANSACTION_DATE) = 3 AND 
+	EXTRACT(YEAR FROM t.TRANSACTION_DATE) = 2025 
+GROUP BY t.ACCOUNT_ID;
 

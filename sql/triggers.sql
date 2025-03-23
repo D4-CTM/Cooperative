@@ -1,4 +1,3 @@
-
 DROP SEQUENCE user_seq;
 DROP SEQUENCE loan_seq;
 
