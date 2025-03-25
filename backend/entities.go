@@ -110,9 +110,9 @@ func (user *Users) Fetch(db *sqlx.DB) error {
 	if err != nil {
 		return fmt.Errorf("The user you are searching was not found!\nerr.Error(): %v\n", err.Error())
 	}
-    if !user.IsActive {
-        return fmt.Errorf("The user you are searching was not found!\nerr.Error(): The user has retire from the company")
-    }
+	if !user.IsActive {
+		return fmt.Errorf("The user you are searching was not found!\nerr.Error(): The user has retire from the company")
+	}
 
 	return nil
 }
@@ -272,42 +272,87 @@ type PaymentTransaction struct {
 }
 
 func (PT *PaymentTransaction) Insert(db *sqlx.DB) error {
-    query := `CALL sp_payment_transaction(?, ?, ?, ?, ?, ?, ?)`
-    for i := range PT.TransactionList {
-        fmt.Println("Transaction send:", PT.TransactionList[i]) 
-        _, err := db.Exec(query,
-            sql.Out{Dest: &PT.TransactionList[i].TransactionId},
-            PT.TransactionList[i].AccountId,
-            PT.TransactionList[i].Date,
-            PT.TransactionList[i].Amount,
-            PT.TransactionList[i].Comment,
-            PT.Payment.PaymentId,
-            PT.Payment.LoanId)
+	query := `CALL sp_payment_transaction(?, ?, ?, ?, ?, ?, ?)`
+	for i := range PT.TransactionList {
+		fmt.Println("Transaction send:", PT.TransactionList[i])
+		_, err := db.Exec(query,
+			sql.Out{Dest: &PT.TransactionList[i].TransactionId},
+			PT.TransactionList[i].AccountId,
+			PT.TransactionList[i].Date,
+			PT.TransactionList[i].Amount,
+			PT.TransactionList[i].Comment,
+			PT.Payment.PaymentId,
+			PT.Payment.LoanId)
 
-        if err != nil {
-            return fmt.Errorf("Crash while inserting #%d payment transaction!\nerr.Error(): %v\n", i, err.Error())
-        }
+		if err != nil {
+			return fmt.Errorf("Crash while inserting #%d payment transaction!\nerr.Error(): %v\n", i, err.Error())
+		}
 
-        fmt.Printf("\nTransaction #%d done!\n\tTransaction id: %s", i, PT.TransactionList[i].TransactionId)
-    }
+		fmt.Printf("\nTransaction #%d done!\n\tTransaction id: %s", i, PT.TransactionList[i].TransactionId)
+	}
 
-    return nil
+	return nil
 }
 
 func (PT *PaymentTransaction) Update(db *sqlx.DB) error {
-    return fmt.Errorf("\nPayment transaction doesn't support updates!\n")
+	return fmt.Errorf("\nPayment transaction doesn't support updates!\n")
 }
 
 func (PT *PaymentTransaction) Fetch(db *sqlx.DB) error {
-    query := `SELECT t.*
+	query := `SELECT t.*
         FROM PAYMENT_TRANSACTIONS pt
         JOIN TRANSACTIONS t 
         ON pt.TRANSACTION_ID = t.TRANSACTION_ID
         WHERE pt.PAYMENT_ID = ?`
-    err := db.Select(&PT.TransactionList, query, PT.Payment.PaymentId)
+	err := db.Select(PT.TransactionList, query, PT.Payment.PaymentId)
+	if err != nil {
+		return fmt.Errorf("Crash while fetching payment transactions!\nerr.Error(): %v\n", err.Error())
+	}
+	return nil
+}
+
+type Closures struct {
+	Id          int    `db:"CLOSURE_ID"`
+	Month       int    `db:"CLOSURE_MONTH"`
+	Year        int    `db:"CLOSURE_YEAR"`
+	Description string `db:"DESCRIPTION"`
+}
+
+func (closure *Closures) Insert(db *sqlx.DB) error {
+    query := `CALL sp_generate_monthly_closure(?, ?, ?)`
+    _, err := db.Exec(query,
+        closure.Month,
+        closure.Year,
+        closure.Description)
+
     if err != nil {
-        return fmt.Errorf("Crash while fetching payment transactions!\nerr.Error(): %v\n", err.Error())
+        return fmt.Errorf("Crash while generating the monthly closure!\nerr.Error(): %v\n", err.Error())
     }
     return nil
+}
+
+func (closure *Closures) Update(db *sqlx.DB) error {
+    query := `CALL sp_change_closure_comment(?, ?, ?)`
+    _, err := db.Exec(query,
+        closure.Month,
+        closure.Year,
+        closure.Description)
+    if err != nil {
+        return fmt.Errorf("Crash while changing the monthly closure description!\nerr.Error(): %v\n", err.Error())
+    }
+    return nil
+}
+
+func (closure *Closures) Fetch(db *sqlx.DB) error {
+    query := `SELECT * FROM CLOSURES WHERE closure_month = ? AND closure_year = ?`
+    err := db.Get(closure, 
+        query,
+        closure.Month,
+        closure.Year)
+    if err != nil {
+        return fmt.Errorf("Crash while fetching the closure!\nerr.Error(): %v\n", err.Error())
+    }
+
+    return nil    
 }
 

@@ -12,7 +12,91 @@ import (
 	"time"
 )
 
+func createClosure(r *http.Request) backend.Closures {
+    desc := r.PostFormValue("description")
+    month_name, err := time.Parse("January", r.PostFormValue("month"))
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+    
+    year, err := strconv.Atoi(r.PostFormValue("year"))
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+    
+    closure := backend.Closures{
+        Year: year,
+        Month: int(month_name.Month()),
+        Description: desc,
+    }
+
+    return closure
+}
+
+func modClosure(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+	fmt.Println("Starting register closure...")
+	
+    if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+	}
+    closure := createClosure(r)
+    err := backend.Update(&closure)
+	if err != nil {
+        fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+        return ;
+    }
+
+    w.Header().Set("hx-status", "200")
+	w.Header().Set("hx-message", "Comment changed succesfully! You can check on the review closure tab!")
+	w.WriteHeader(http.StatusOK)
+    fmt.Println("Closure made!")
+}
+
+func regClosure(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+	fmt.Println("Starting register closure...")
+	
+    if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+	}
+
+    closure := createClosure(r)
+    err := backend.Insert(&closure)
+	if err != nil {
+        fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+        return ;
+    }
+
+    w.Header().Set("hx-status", "200")
+	w.Header().Set("hx-message", "Monthly closure registered succesfully! You can check on the review closures tab to check!")
+	w.WriteHeader(http.StatusOK)
+    fmt.Println("Closure made!")
+}
+
 func requestPayment(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
 	fmt.Println("Starting payment request")
 
 	if r.Header.Get("HX-Request") == "" {
@@ -25,36 +109,43 @@ func requestPayment(w http.ResponseWriter, r *http.Request) {
 	payId, err := backend.GetPaymentIdOf(r.PostFormValue("loan-id"), payNo)
 	if err != nil {
 		fmt.Println(err.Error())
-	    w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", err.Error())
-        w.WriteHeader(http.StatusBadRequest)
-    }
-    
-    payment := backend.Payments{
-        PaymentId: payId,
-        LoanId: r.PostFormValue("loan-id"),
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+        return
     }
 
+	payment := backend.Payments{
+		PaymentId: payId,
+		LoanId:    r.PostFormValue("loan-id"),
+	}
+
 	PT := backend.PaymentTransaction{
-		Payment:       payment,
+		Payment:         payment,
 		TransactionList: []backend.Transactions{transaction},
 	}
 	fmt.Println(PT)
 	err = backend.Insert(&PT)
 	if err != nil {
 		fmt.Println(err.Error())
-	    w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", err.Error())
-        w.WriteHeader(http.StatusNotFound)
-	    return
-    }
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-    w.Header().Set("hx-status", "200")
-    w.Header().Set("hx-message", "Payment done! check your loan data to confirm it")
-    w.WriteHeader(http.StatusOK)
+	w.Header().Set("hx-status", "200")
+	w.Header().Set("hx-message", "Payment done! check your loan data to confirm it")
+	w.WriteHeader(http.StatusOK)
 }
 
 func requestDeposit(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
 	fmt.Println("Starting deposit request")
 
 	if r.Header.Get("HX-Request") == "" {
@@ -66,14 +157,15 @@ func requestDeposit(w http.ResponseWriter, r *http.Request) {
 	err := backend.Insert(&transaction)
 	if err != nil {
 		fmt.Println(err.Error())
-	    w.Header().Set("HX-Status", "400") 
-        w.Header().Set("HX-Message", err.Error())
-        w.WriteHeader(http.StatusNotFound)
-	}
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+	    return
+    }
 
-    w.Header().Set("hx-status", "200")
-    w.Header().Set("hx-message", "Deposit completed, check your account balance!")
-    w.WriteHeader(http.StatusOK)
+	w.Header().Set("hx-status", "200")
+	w.Header().Set("hx-message", "Deposit completed, check your account balance!")
+	w.WriteHeader(http.StatusOK)
 }
 
 func CreateTransaction(r *http.Request) backend.Transactions {
@@ -94,6 +186,12 @@ func CreateTransaction(r *http.Request) backend.Transactions {
 }
 
 func requestLoan(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
 	fmt.Println("Starting loan request...")
 
 	if r.Header.Get("HX-Request") == "" {
@@ -137,6 +235,12 @@ func requestLoan(w http.ResponseWriter, r *http.Request) {
 }
 
 func registerUser(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
 	fmt.Println("Starting registration user...")
 
 	if r.Header.Get("HX-Request") == "" {
@@ -183,17 +287,17 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 
 	err := backend.Insert(&user)
 	if err != nil {
-		fmt.Println(err.Error())    	    
-        w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", "There was an error while creating your accound, please check that fill all the fields with an '*'")
-        w.WriteHeader(http.StatusBadGateway)
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "There was an error while creating your accound, please check that fill all the fields with an '*'")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	fmt.Println("your id is:", user.UserId)
 
 	w.Header().Set("HX-Location", "/login")
-    w.Header().Set("HX-Status", "200")
-    w.Header().Set("HX-Message", fmt.Sprintf("Affiliated succesfully! Your id is: %s", user.UserId))
+	w.Header().Set("HX-Status", "200")
+	w.Header().Set("HX-Message", fmt.Sprintf("Affiliated succesfully! Your id is: %s", user.UserId))
 	w.WriteHeader(http.StatusOK)
 	fmt.Println("\tUser registered")
 }
@@ -217,9 +321,9 @@ func verifyUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err.Error())
 		w.Header().Set("Content-Type", "text/html")
-        w.Write([]byte(`<p>There was an error fetching the user!<br>Please check the user or password</p>`))
-        w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", err.Error())
+		w.Write([]byte(`<p>There was an error fetching the user!<br>Please check the user or password</p>`))
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -231,8 +335,8 @@ func verifyUser(w http.ResponseWriter, r *http.Request) {
 	backend.LoginUser.Admin = user.Admin
 
 	w.Header().Set("HX-Location", "/dashboard")
-    w.Header().Set("HX-Status", "202")
-    w.WriteHeader(http.StatusOK)
+	w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusOK)
 	fmt.Println("\tUser verify")
 }
 
@@ -290,41 +394,52 @@ func stringBool(admin bool) string {
 	return "F"
 }
 
+func compareDates(t1 time.Time, t2 time.Time) bool {
+	y1, m1, d1 := t1.Date()
+	y2, m2, d2 := t2.Date()
+	return y1 == y2 && m1 == m2 && d1 == d2
+}
+
 func DashboardUserHandler(w http.ResponseWriter, r *http.Request) {
 	if len(backend.LoginUser.UserId) == 0 {
 		fmt.Println("Please login first")
-	    w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", "Please login first")
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 		return
 	}
+	now := time.Now()
+	year, month, _ := now.Date()
+	lastOfMonth := time.Date(year, month, 1, 0, 0, 0, 0, now.Location()).AddDate(0, 1, -1)
+
 	content := map[string]any{
-		"title":     "Dashboard - ABCo-op",
-		"stylePath": "dashboard.css",
-		"user":      backend.LoginUser.Name,
-		"admin":     stringBool(backend.LoginUser.Admin),
+		"title":        "Dashboard - ABCo-op",
+		"stylePath":    "dashboard.css",
+		"user":         backend.LoginUser.Name,
+		"admin":        stringBool(backend.LoginUser.Admin),
+		"closureValid": stringBool(compareDates(now, lastOfMonth) || true),
 	}
 
-    w.Header().Set("HX-Status", "202")
-    w.WriteHeader(http.StatusAccepted)
+	w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
 	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/user.html")
 }
 
 func DashboardLoanHandler(w http.ResponseWriter, r *http.Request) {
 	if len(backend.LoginUser.UserId) == 0 {
 		fmt.Println("Please login first")
-	    w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", "Please login first")
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 		return
 	}
-    loanId, err := backend.GetLoanIdOfUser(backend.LoginUser.UserId)
+	loanId, err := backend.GetLoanIdOfUser(backend.LoginUser.UserId)
 	if err != nil {
 		fmt.Println(err.Error())
-	} 
+	}
 	content := map[string]any{
-		"admin": stringBool(backend.LoginUser.Admin),
-        "loanActive": stringBool(loanId != ""),
+		"admin":      stringBool(backend.LoginUser.Admin),
+		"loanActive": stringBool(loanId != ""),
 	}
 
 	if content["loanActive"] == "T" {
@@ -345,22 +460,28 @@ func DashboardLoanHandler(w http.ResponseWriter, r *http.Request) {
 		content["loan"] = loan
 
 	}
-	maxAmount, err := backend.GetBalanceOf(backend.LoginUser.UserId + "-CAR")
+	maxAmount, err := backend.GetBalanceOf(backend.LoginUser.UserId + "-CAP")
 	if err != nil {
 		fmt.Println(err.Error())
+		maxAmount = 0
 	}
 	content["MaxAmount"] = maxAmount
 
-    w.Header().Set("HX-Status", "202")
-    w.WriteHeader(http.StatusAccepted)
-	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/loan.html")
+	w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/loan.html")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
 func DashboardDepositHandle(w http.ResponseWriter, r *http.Request) {
 	if len(backend.LoginUser.UserId) == 0 {
 		fmt.Println("Please login first")
-	    w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", "Please login first")
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 		return
 	}
@@ -373,16 +494,20 @@ func DashboardDepositHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	content["MaxAmount"] = 10000
 	content["UserName"] = backend.LoginUser.Name
-    w.Header().Set("HX-Status", "202")
-    w.WriteHeader(http.StatusAccepted)
-	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/transaction.html")
+	w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/transaction.html")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
 func DashboardPaymentHandle(w http.ResponseWriter, r *http.Request) {
 	if len(backend.LoginUser.UserId) == 0 {
 		fmt.Println("Please login first")
-	    w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", "Please login first")
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 		return
 	}
@@ -395,36 +520,40 @@ func DashboardPaymentHandle(w http.ResponseWriter, r *http.Request) {
 		"MinAmount": 0.01,
 	}
 	content["UserName"] = backend.LoginUser.Name
-    loanId, err := backend.GetLoanIdOfUser(backend.LoginUser.UserId)
-    if err != nil {
+	loanId, err := backend.GetLoanIdOfUser(backend.LoginUser.UserId)
+	if err != nil {
 		fmt.Println(err.Error())
-	    w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", err.Error())
-        w.WriteHeader(http.StatusNotFound)
-        return
-    }
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	payments, err := backend.FetchPayments(loanId)
 	if err != nil {
 		fmt.Println(err.Error())
-	    w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", err.Error())
-        w.WriteHeader(http.StatusNotFound)
-        return
-    }
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	content["MaxAmount"] = payments[0].AmountToPay
 	content["payments"] = payments
 	content["loanId"] = loanId
 
-    w.Header().Set("HX-Status", "202")
-    w.WriteHeader(http.StatusAccepted)
-	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/transaction.html")
+	w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/transaction.html")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
 func DashboardLiquidationHandle(w http.ResponseWriter, r *http.Request) {
 	if len(backend.LoginUser.UserId) == 0 {
-	    w.Header().Set("HX-Status", "400")
-        w.Header().Set("HX-Message", "Please login first")
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 		return
 	}
@@ -436,16 +565,62 @@ func DashboardLiquidationHandle(w http.ResponseWriter, r *http.Request) {
 		"action":    "retire",
 		"MinAmount": 0.01,
 	}
-	balance, err := backend.GetBalanceOf(backend.LoginUser.UserId + "-CAP")
+	balance, err := backend.GetBalanceOf(backend.LoginUser.UserId + "-CAR")
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	content["MaxAmount"] = balance
 	content["UserName"] = backend.LoginUser.Name
-    
-    w.Header().Set("HX-Status", "202")
-    w.WriteHeader(http.StatusAccepted)
-	RenderTemplate(w, content, "./templates/dashboard.html", "./templates/DashboardOptions/transaction.html")
+
+	w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/transaction.html")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	tmpl.ExecuteTemplate(w, "dashboard-content", content)
+}
+
+func DashboardRegisterClosure(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+
+    endPoint := "/modify-closure/"
+    action := "Modify"
+    year, month, _ := time.Now().Date()
+    closure := backend.Closures{
+        Year: year,
+        Month: int(month),
+    }
+    err := backend.Fetch(&closure)
+    if err != nil {
+        fmt.Println(err.Error())
+        endPoint = "/register-closure/"
+        action = "Register"
+    }
+
+	content := map[string]any{
+		"year":  year,
+		"month": month,
+        "endPoint": endPoint,
+        "action": action,
+    }
+
+	w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/regClosure.html")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	tmpl.ExecuteTemplate(w, "dashboard-content", content)
+}
+
+func DashboardReviewClosures(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("Review closures")
 }
 
 func main() {
@@ -454,17 +629,24 @@ func main() {
 
 	mux.Handle("/static/", http.StripPrefix("/static/", static))
 
+    // basically requests
+	mux.HandleFunc("/modify-closure/", modClosure)
+	mux.HandleFunc("/register-closure/", regClosure)
 	mux.HandleFunc("/request-payment/", requestPayment)
 	mux.HandleFunc("/request-deposit/", requestDeposit)
 	mux.HandleFunc("/request-loan/", requestLoan)
 	mux.HandleFunc("/register-user/", registerUser)
 	mux.HandleFunc("/verify-user/", verifyUser)
-	mux.HandleFunc("/dashboard-deposits/", DashboardDepositHandle)
+	// dashboard options
+    mux.HandleFunc("/dashboard-rev-closure/", DashboardReviewClosures)
+    mux.HandleFunc("/dashboard-reg-closure/", DashboardRegisterClosure)
+    mux.HandleFunc("/dashboard-deposits/", DashboardDepositHandle)
 	mux.HandleFunc("/dashboard-liquidations/", DashboardLiquidationHandle)
 	mux.HandleFunc("/dashboard-payments/", DashboardPaymentHandle)
 	mux.HandleFunc("/dashboard-user/", DashboardUserHandler)
 	mux.HandleFunc("/dashboard-loan/", DashboardLoanHandler)
-	mux.HandleFunc("/dashboard", DashboardUserHandler)
+    // general gui options
+    mux.HandleFunc("/dashboard", DashboardUserHandler)
 	mux.HandleFunc("/register", RegisterHandler)
 	mux.HandleFunc("/login", LoginHandler)
 

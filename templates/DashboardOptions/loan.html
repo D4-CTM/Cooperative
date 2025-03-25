@@ -16,13 +16,74 @@
                 </div>
                 <div class="input-div">
                     <p>Requested amount:</p>
-                    <input type="number" id="rCapital" name="capital" value="120", min="120" max="{{ .MaxAmount }}" oninput="verifyAmount(this)">
+                    <input type="number" id="rCapital" name="capital" value="1000" min="1000" step="0.01"  max="{{ .MaxAmount }}" oninput="verifyAmount(this)">
                 </div>
             </div>
             <div class="form-buttons">
-                <input type="button" name="accept-btn" value="request loan" hx-post="/request-loan/" hx-on:click="validateForm(event)" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data"> 
+                <input type="button" name="accept-btn" value="request loan" hx-post="/request-loan/" hx-on:click="validateForm(event)" hx-swap="innerHTML" hx-target="#display_data" hx-select="#display_data" hx-on::after-request="handleResponse(event)"> 
             </div>
         </form>
+        <script>
+            let max = document.getElementById("rCapital").max;
+            let LastCaptalString = 10000;
+            let LastPeriodString = 12;
+
+            function isValid(input) {
+                if (max < 1000) {
+                    input.checked = false;
+                    document.getElementById("fidu").checked = true;
+                    alert(
+                        "You need to have at least a $. 1000 on your account to use this loan.",
+                    );
+                } else {
+                    document.getElementById("rCapital").value = 1000;
+                }
+            }
+
+            function verifyPeriods(input) {
+                for (i = 0; i < input.value.length; i++) {
+                    if (input.value.at(i) === ".") {
+                        input.value = parseInt(input.value)
+                        break;
+                    }
+                }
+
+                if (input.value > 12) {
+                    input.value = 12;
+                } else if (input.value < 1) {
+                    input.value = 1;
+                }
+
+                if (input.value.length != 0) {
+                    LastPeriodString = input.value;
+                    return ;
+                }
+                input.value = LastPeriodString;
+            }
+
+            function verifyAmount(input) {
+                const lmax = document.getElementById("fidu").checked ? 10000 : max;
+                console.log(max)
+                console.log(lmax)
+                input.max = lmax;
+
+                if (parseFloat(input.value) > parseFloat(lmax)) {
+                    input.value = lmax;
+                    LastCaptalString = lmax;
+                    return ;
+                } else if (parseFloat(input.value) < 0.01) {
+                    input.value = 0.01;
+                    LastCaptalString = 0.01;
+                    return ;
+                }
+
+                if (input.value.length != 0) {
+                    LastCaptalString = input.value;
+                }
+                input.value = LastCaptalString;
+            }
+            verifyAmount(document.getElementById("rCapital"));
+        </script>
     {{ else if eq .loanActive "T"}}
         <h1>LOAN DETAILS</h1>
         <table class="loan-details">

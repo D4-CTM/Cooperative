@@ -149,3 +149,14 @@ func Insert(crud Crudeable) error {
 	return crud.Insert(con)
 }
 
+func Update(crud Crudeable) error {
+	con, err := getConnection()
+
+	if err != nil {
+		return err
+	}
+    defer con.Close()
+
+	return crud.Update(con)
+}
+

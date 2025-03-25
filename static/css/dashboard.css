@@ -18,7 +18,7 @@ body {
     overflow: hidden;
 }
 
-#dropdown-options,
+.dropdown-options,
 #options {
     background-color: var(--bg);
     display: flex;
@@ -26,7 +26,7 @@ body {
     flex: 1 0 auto;
 }
 
-#dropdown-options {
+.dropdown-options {
     display: none;
     flex: 0 1 auto;
 }
@@ -42,7 +42,7 @@ body {
     font-size: 48px;
 }
 
-#dropdown-options {
+.dropdown-options {
     background-color: var(--bg-light);
 }
 

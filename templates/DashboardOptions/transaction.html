@@ -13,9 +13,11 @@
             <div class="input-div">
                 <p>Into which account will you deposit?</p>
                 <div class="loan-type">
-                    <label><input type="radio" name="destiny-acc" value="-CAP" checked="checked"> Apportations</label>
+                    {{ if not (eq .type "Liquidation")}}
+                        <label><input type="radio" name="destiny-acc" value="-CAP" checked="checked"> Apportations</label>
+                    {{ end }}
                     {{ if not (eq .type "Payment") }}
-                        <label><input type="radio" name="destiny-acc" value="-CAR"> Savings</label> 
+                        <label><input type="radio" name="destiny-acc" value="-CAR" {{if not (eq .type "Deposit") }} checked="checked" {{ end }} > Savings</label> 
                     {{ end }}
                 </div>
             </div>
