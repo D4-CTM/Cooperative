@@ -34,6 +34,18 @@ function validateForm(event) {
         form.reportValidity(); // Show default validation messages
     }
 }
+
+function validateClosure(event) {
+    const option = document.getElementById("closure-select")
+    const reviewData = document.getElementById("review");
+    if (option.options[0].selected) {
+        event.preventDefault();
+        reviewData.style.display = "none"
+    } else {
+        reviewData.style.display = "flex"
+    }
+} 
+
 function changeOption(input) {
     for (i = 0; i < input.length; i++) {
         if (input.options[i].selected) {
@@ -41,6 +53,15 @@ function changeOption(input) {
             opt.selected = true;
             document.getElementById("MaxAmount").max = opt.value;
         }
+    }
+}
+
+function displayReview(option) {
+    const reviewData = document.getElementById("review");
+    if (option.options[0].selected) {
+        reviewData.style.display = "none";
+    } else {
+        reviewData.style.display = "flex";   
     }
 }
 

@@ -88,6 +88,10 @@ body {
     flex-direction: column;
 }
 
+.form-content-header {
+    overflow: scroll;
+    display: flex;
+}
 
 .fl-row {
     display: flex;
@@ -103,6 +107,23 @@ body {
 .input-div p {
     font-size: 28px;
     margin-bottom: 10px;
+}
+
+.closure-review-div {
+    overflow: scroll;
+    display: none;
+    flex-direction: column;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    margin-bottom: 20px;
+    max-height: 70%;
+}
+
+.closure-review-div h2 {
+    margin-bottom: 3px;
+    margin-top: 3px;
+    text-align: center;
+    font-size: 28px;
 }
 
 .input-div select {
@@ -121,6 +142,7 @@ body {
     font-size: 24px;
 }
 
+.not-resizable,
 .input-div textarea {
     resize: none;
 }

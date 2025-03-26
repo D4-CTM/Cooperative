@@ -15,7 +15,7 @@ type LoginData struct {
 }
 
 var LoginUser LoginData = LoginData{UserId: ""}
-
+    
 func getConnection() (*sqlx.DB, error) {
 	const CONNECTION_STRING string = "HOSTNAME=localhost;DATABASE=coopdb;PORT=51000;UID=db2inst1;PWD=coop4312"
 	db, err := sqlx.Connect("go_ibm_db", CONNECTION_STRING)
@@ -33,11 +33,44 @@ func GetPaymentIdOf(loanId string, paymentNumber string) (int, error) {
     defer con.Close()
     var paymentId int
     query := `SELECT PAYMENT_ID FROM PAYMENTS WHERE PAYMENTS.LOAN_ID = ? AND PAYMENTS.PAYMENT_NUMBER = ?`
-    err = con.Get(&paymentId, query, loanId, paymentNumber)
+        err = con.Get(&paymentId, query, loanId, paymentNumber)
     if err != nil {
         return 0, fmt.Errorf("Crash while fetching payment id!\nerr.Error(): %v\n", err.Error())
     }
     return paymentId, nil
+}
+
+func FetchClosures() ([]Closures, error) {
+	con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+    defer con.Close()
+    query := `SELECT *, closure_id || ': '||closure_month || '/' || closure_year AS closure_compact FROM closures;`
+    closure := []Closures{}
+    err = con.Select(&closure, query)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the closures!\nerr.Error(): %v\n", err.Error())
+    }
+
+    return closure, nil
+}
+
+func FetchPayouts(closureId int) ([]Payouts, error) {
+	con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+    defer con.Close()
+    query := `SELECT *, APPORTATION_PERCENTAGE/100.00 AS decimal_percentage
+        FROM payouts
+        WHERE closure_id = ?;`
+    payouts := []Payouts{}
+    err = con.Select(&payouts, query, closureId)
+	if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the dividends!\nerr.Error(): %v\n", err.Error())
+	}
+    return payouts, nil
 }
 
 func FetchPayments(loanId string) ([]Payments, error) {

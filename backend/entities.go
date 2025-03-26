@@ -304,7 +304,7 @@ func (PT *PaymentTransaction) Fetch(db *sqlx.DB) error {
         JOIN TRANSACTIONS t 
         ON pt.TRANSACTION_ID = t.TRANSACTION_ID
         WHERE pt.PAYMENT_ID = ?`
-	err := db.Select(PT.TransactionList, query, PT.Payment.PaymentId)
+	err := db.Select(&PT.TransactionList, query, PT.Payment.PaymentId)
 	if err != nil {
 		return fmt.Errorf("Crash while fetching payment transactions!\nerr.Error(): %v\n", err.Error())
 	}
@@ -316,43 +316,124 @@ type Closures struct {
 	Month       int    `db:"CLOSURE_MONTH"`
 	Year        int    `db:"CLOSURE_YEAR"`
 	Description string `db:"DESCRIPTION"`
+	Compact     string `db:"CLOSURE_COMPACT"`
 }
 
 func (closure *Closures) Insert(db *sqlx.DB) error {
-    query := `CALL sp_generate_monthly_closure(?, ?, ?)`
-    _, err := db.Exec(query,
-        closure.Month,
-        closure.Year,
-        closure.Description)
+	query := `CALL sp_generate_monthly_closure(?, ?, ?)`
+	_, err := db.Exec(query,
+		closure.Month,
+		closure.Year,
+		closure.Description)
 
-    if err != nil {
-        return fmt.Errorf("Crash while generating the monthly closure!\nerr.Error(): %v\n", err.Error())
-    }
-    return nil
+	if err != nil {
+		return fmt.Errorf("Crash while generating the monthly closure!\nerr.Error(): %v\n", err.Error())
+	}
+	return nil
 }
 
 func (closure *Closures) Update(db *sqlx.DB) error {
-    query := `CALL sp_change_closure_comment(?, ?, ?)`
-    _, err := db.Exec(query,
-        closure.Month,
-        closure.Year,
-        closure.Description)
-    if err != nil {
-        return fmt.Errorf("Crash while changing the monthly closure description!\nerr.Error(): %v\n", err.Error())
-    }
-    return nil
+	query := `CALL sp_change_closure_comment(?, ?, ?)`
+	_, err := db.Exec(query,
+		closure.Month,
+		closure.Year,
+		closure.Description)
+	if err != nil {
+		return fmt.Errorf("Crash while changing the monthly closure description!\nerr.Error(): %v\n", err.Error())
+	}
+	return nil
 }
 
 func (closure *Closures) Fetch(db *sqlx.DB) error {
-    query := `SELECT * FROM CLOSURES WHERE closure_month = ? AND closure_year = ?`
-    err := db.Get(closure, 
-        query,
-        closure.Month,
-        closure.Year)
-    if err != nil {
-        return fmt.Errorf("Crash while fetching the closure!\nerr.Error(): %v\n", err.Error())
-    }
+	query := `SELECT *, closure_id || ': '||closure_month || '/' || closure_year AS closure_compact FROM CLOSURES WHERE closure_month = ? AND closure_year = ?`
+	err := db.Get(closure,
+		query,
+		closure.Month,
+		closure.Year)
+	if err != nil {
+		return fmt.Errorf("Crash while fetching the closure!\nerr.Error(): %v\n", err.Error())
+	}
 
-    return nil    
+	return nil
+}
+
+type ClosureTransaction struct {
+	ClosureId    int
+	Transactions []Transactions
+}
+
+func (closureTransaction *ClosureTransaction) Fetch(db *sqlx.DB) error {
+	query := `SELECT t.* 
+        FROM CLOSURE_TRANSACTIONS ct 
+        JOIN TRANSACTIONS t 
+        ON ct.TRANSACTION_ID = t.TRANSACTION_ID
+        LEFT JOIN PAYMENT_TRANSACTIONS pt 
+        ON pt.TRANSACTION_ID = t.TRANSACTION_ID
+        WHERE ct.CLOSURE_ID = ?
+        AND pt.PAYMENT_ID IS NULL;`
+
+	err := db.Select(&closureTransaction.Transactions,
+		query,
+		closureTransaction.ClosureId)
+	if err != nil {
+		return fmt.Errorf("Crash while fetching the closure transactions!\nerr.Error(): %v\n", err.Error())
+	}
+	return nil
+}
+
+type ClosurePaymentTransactions struct {
+	TransactionId string  `db:"TRANSACTION_ID"`
+	LoanId        string  `db:"LOAN_ID"`
+	PaymentNo     string  `db:"PAYMENT_NUMBER"`
+	PMT           float64 `db:"AMOUNT_TO_PAY"` //Amount to pay
+	PayedAmount   float64 `db:"TRANSACTION_AMMOUNT"`
+}
+
+type ClosurePayments struct {
+	ClosureId int
+	CPT       []ClosurePaymentTransactions
+}
+
+func (closurePayment *ClosurePayments) Fetch(db *sqlx.DB) error {
+	query := `SELECT 
+        t.TRANSACTION_ID,
+        p.LOAN_ID,
+        p.PAYMENT_NUMBER,
+        p.AMOUNT_TO_PAY,
+        t.TRANSACTION_AMMOUNT
+    FROM CLOSURE_PAYMENTS cp 
+    JOIN PAYMENTS p
+    ON cp.PAYMENT_ID = p.PAYMENT_ID
+    JOIN PAYMENT_TRANSACTIONS pt 
+    ON cp.PAYMENT_ID = pt.PAYMENT_ID 
+    JOIN TRANSACTIONS t 
+    ON t.TRANSACTION_ID = pt.TRANSACTION_ID
+    WHERE cp.CLOSURE_ID = ?`
+	err := db.Select(&closurePayment.CPT, query, closurePayment.ClosureId)
+	if err != nil {
+		return fmt.Errorf("Crash while fetching the closure payments\nerr.Error() %v\n", err.Error())
+	}
+	return nil
+}
+
+type Payouts struct {
+    PayoutId int `db:"PAYOUT_ID"`
+    ClosureId int `db:"CLOSURE_ID"`
+    AccountId string `db:"ACCOUNT_ID"`
+    AccountBalance float64`db:"ACCOUNT_BALANCE"`
+    ApportationPercentage int `db:"APPORTATION_PERCENTAGE"`
+    AccountProfit float64 `db:"ACCOUNT_PROFIT"`
+    DecimalPercentage float32 `db:"DECIMAL_PERCENTAGE"`
+}
+
+func (payout *Payouts) Fetch(db *sqlx.DB) error {
+    query := `SELECT *, APPORTATION_PERCENTAGE/100.00 AS decimal_percentage
+        FROM payouts
+        WHERE payout_id = ?`
+    err := db.Get(payout, query, payout.PayoutId)
+    if err != nil {
+        return fmt.Errorf("Crash while fetching a dividend!\nerr.Error() %v\n", err.Error())
+    }
+    return nil
 }
 

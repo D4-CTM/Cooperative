@@ -1,0 +1,77 @@
+{{ define "dashboard-content" }}
+    <h1>Review closures</h1>
+    <form id="form-div">
+        <div class="form-content-header">
+            <div class="input-div">
+                <p>What closure do you wan't to review?:</p>
+                <select name="closure-select" id="closure-select" hx-post="/review-closure/" hx-target="#review"  hx-on:change="validateClosure(event)">
+                <option value="0">id: month/year</option>
+                     {{ range .Closures }}
+                        <option value="{{ .Id }}">{{ .Compact }}</option>
+                    {{ end }} 
+                </select>
+            </div>
+        </div> 
+        <div class="closure-review-div" id="review">
+            {{ block "review-data" .}} 
+                <div class="input-div">
+                    <p>Closure description:</p>
+                    <textarea type="text" class="not-resizable" rows="5" readonly>
+                        {{ .Closure.Description }}
+                    </textarea>
+                </div>
+                <h2>Closure deposits</h2>
+                <table>
+                    <tr>
+                        <th>Transaction id</th>
+                        <th>Account deposited</th>
+                        <th>Amount deposited</th>
+                    </tr>
+                    {{ range .ClosureTransactions }}
+                        <tr>
+                            <td>{{ .TransactionId }}</td>
+                            <td>{{ .AccountId }}</td>
+                            <td>{{ .Amount }}</td>
+                        </tr>
+                    {{ end }}
+                </table>
+                <h2>Closure payments</h2>
+                <table>
+                    <tr>
+                        <th>Transaction id</th>
+                        <th>Loan id</th>
+                        <th>Payment no.</th>
+                        <th>Payment amount</th>
+                        <th>Amount payed</th>
+                    </tr>
+                    {{ range .ClosurePayments }}
+                        <tr>
+                            <td>{{ .TransactionId }}</td>
+                            <td>{{ .LoanId }}</td>
+                            <td>{{ .PaymentNo }}</td>
+                            <td>{{ .PMT }}</td>
+                            <td>{{ .PayedAmount }}</td>
+                        </tr>
+                    {{ end }}
+                </table>
+                <h2>Dividends</h2>
+                <table>
+                    <tr>
+                        <th>Account id</th>
+                        <th>Apportation account<br>balance</th>
+                        <th>apporatation<br>percentage</th>
+                        <th>profit earned</th>
+                    </tr>
+                    {{ range .Dividends }}
+                        <tr>
+                            <td>{{ .AccountId }}</td>
+                            <td>{{ .AccountBalance }}</td>
+                            <td>{{ .ApportationPercentage }}</td>
+                            <td>{{ .AccountProfit }}</td>
+                        </tr>
+                    {{ end }}
+                </table>
+            {{ end }}
+        </div>
+    </form>
+{{ end }}
