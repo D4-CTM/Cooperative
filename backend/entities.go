@@ -417,14 +417,15 @@ func (closurePayment *ClosurePayments) Fetch(db *sqlx.DB) error {
 }
 
 type Payouts struct {
-	PayoutId              int     `db:"PAYOUT_ID"`
-	ClosureId             int     `db:"CLOSURE_ID"`
-	AccountId             string  `db:"ACCOUNT_ID"`
-	AccountBalance        float64 `db:"ACCOUNT_BALANCE"`
-	ApportationPercentage int     `db:"APPORTATION_PERCENTAGE"`
-	AccountProfit         float64 `db:"ACCOUNT_PROFIT"`
-	DecimalPercentage     float32 `db:"DECIMAL_PERCENTAGE"`
-	Name                  string  `db:"NAME"`
+	PayoutId              int       `db:"PAYOUT_ID"`
+	ClosureId             int       `db:"CLOSURE_ID"`
+	AccountId             string    `db:"ACCOUNT_ID"`
+	AccountBalance        float64   `db:"ACCOUNT_BALANCE"`
+	ApportationPercentage int       `db:"APPORTATION_PERCENTAGE"`
+	AccountProfit         float64   `db:"ACCOUNT_PROFIT"`
+	DecimalPercentage     float32   `db:"DECIMAL_PERCENTAGE"`
+	PayoutDate            string    `db:"PAYOUT_DATE"`
+	Name                  string    `db:"NAME"`
 }
 
 func (payout *Payouts) Fetch(db *sqlx.DB) error {
@@ -445,7 +446,7 @@ type AffiliateReports struct {
 	SavingsBalance     float64   `db:"SAVINGS_BALANCE"`
 	ApportationBalance float64   `db:"APPORTATION_BALANCE"`
 	Total              float64   `db:"TOTAL"`
-    HiringDateFmt      string
+	HiringDateFmt      string
 }
 
 func (affiliateReport *AffiliateReports) Fetch(db *sqlx.DB) error {
@@ -465,6 +466,16 @@ func (affiliateReport *AffiliateReports) Fetch(db *sqlx.DB) error {
 	if err != nil {
 		return fmt.Errorf("Crash while fetching account reports!\nerr.Error(): %v\n", err.Error())
 	}
-    affiliateReport.HiringDateFmt = affiliateReport.HiringDate.Format("2006-03-02")
-    return nil
+	affiliateReport.HiringDateFmt = affiliateReport.HiringDate.Format("2006-03-02")
+	return nil
 }
+
+type LoanTransactions struct {
+    LoanId string `db:"LOAN_ID"`
+    TransactionId string `db:"TRANSACTION_ID"`
+    Amount  float64 `db:"TRANSACTION_AMMOUNT"`
+    Date time.Time `db:"TRANSACTION_DATE"`
+    PaymentNo string `db:"PAYMENT_NUMBER"`
+    FmtDate string
+}
+

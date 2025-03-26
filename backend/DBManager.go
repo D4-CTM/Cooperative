@@ -25,6 +25,82 @@ func getConnection() (*sqlx.DB, error) {
 	return db, nil
 }
 
+func FetchLoanTransactionsYear(userId string) ([]int, error) {
+    con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+    query := `SELECT 
+            EXTRACT(YEAR FROM t.TRANSACTION_DATE)
+        FROM LOANS l
+        JOIN PAYMENTS p
+        ON l.LOAN_ID = p.LOAN_ID
+        JOIN PAYMENT_TRANSACTIONS pt 
+        ON pt.PAYMENT_ID = p.PAYMENT_ID
+        JOIN TRANSACTIONS t 
+        ON t.TRANSACTION_ID = pt.TRANSACTION_ID
+        WHERE l.USER_ID = ?
+        GROUP BY EXTRACT(YEAR FROM t.TRANSACTION_DATE)
+        ORDER BY EXTRACT(YEAR FROM t.TRANSACTION_DATE) DESC`
+    year := []int{}
+    err = con.Select(&year, query, userId)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the years of loan transactions!\nerr.Error() %v\n", err.Error())
+    }
+
+    if len(year) == 0 {
+        return nil, fmt.Errorf("Crash while fetching the years of loan transactions!\nerr.Error(): did'n found any transaction")
+    }
+
+    return year, nil
+}
+
+func FetchLoanTransactions(userId string, year int) ([]LoanTransactions, error) {
+    con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+    query := `SELECT 
+            l.LOAN_ID,
+            pt.TRANSACTION_ID,
+            t.TRANSACTION_AMMOUNT,
+            t.TRANSACTION_DATE,
+            p.PAYMENT_NUMBER
+        FROM LOANS l
+        JOIN PAYMENTS p
+        ON l.LOAN_ID = p.LOAN_ID
+        JOIN PAYMENT_TRANSACTIONS pt 
+        ON pt.PAYMENT_ID = p.PAYMENT_ID
+        JOIN TRANSACTIONS t 
+        ON t.TRANSACTION_ID = pt.TRANSACTION_ID
+        WHERE l.USER_ID = ? AND
+        EXTRACT(YEAR FROM l.LOAN_DATE) = ?`
+
+    loanTransactions := []LoanTransactions{}
+    err = con.Select(&loanTransactions, query, userId, year)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching transactions from %d of the account: %s!\nerr.Error() %v\n", year, userId, err.Error())
+    }
+
+    if len(loanTransactions) == 0 {
+        return nil, fmt.Errorf("Crash while fetching the yearly transactions of account: %s!\nerr.Error(): did'n found any transactions", userId)
+    }
+
+    totalLoanTransaction := LoanTransactions{
+        LoanId: "TOTAL",
+        TransactionId: fmt.Sprint(len(loanTransactions)),
+    }
+    for i := range loanTransactions {
+        totalLoanTransaction.Amount += loanTransactions[i].Amount
+        loanTransactions[i].FmtDate = loanTransactions[i].Date.Format("2006-01-02")
+    }
+    loanTransactions = append(loanTransactions, totalLoanTransaction)
+
+    return loanTransactions, nil
+}
+
 func FetchTransactionsByYear(accId string, year int) ([]Transactions, error) {
 	con, err := getConnection()
 	if err != nil {
@@ -184,6 +260,71 @@ func FetchClosures() ([]Closures, error) {
 	}
 
 	return closure, nil
+}
+
+func FetchAccountPayoutsYears(accountId string) ([]int, error){
+	con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+    query := `SELECT c.CLOSURE_YEAR
+        FROM PAYOUTS p 
+        JOIN CLOSURES c
+        ON p.CLOSURE_ID = c.CLOSURE_ID
+        WHERE p.ACCOUNT_ID = ?
+        GROUP BY CLOSURE_YEAR 
+        ORDER BY c.CLOSURE_YEAR DESC;`
+    year := []int{}
+    err = con.Select(&year, query, accountId)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the payout years!\nerr.Error() %v\n", err.Error())
+    }
+
+    if len(year) == 0 {
+        return nil, fmt.Errorf("Crash while fetching the payout years!\nerr.Error(): did'n found any payout")
+    }
+
+    return year, nil
+}
+
+func FetchAccountPayouts(accountId string, year int) ([]Payouts, error) {
+	con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+	query := `
+        SELECT 
+            p.*,
+            p.APPORTATION_PERCENTAGE/100.00 AS DECIMAL_PERCENTAGE,
+            c.CLOSURE_YEAR || '/' || c.CLOSURE_MONTH AS PAYOUT_DATE
+        FROM PAYOUTS p 
+        JOIN CLOSURES c 
+        ON c.CLOSURE_ID = p.CLOSURE_ID
+        WHERE p.ACCOUNT_ID = ?
+        AND c.CLOSURE_YEAR = ?`
+	payouts := []Payouts{}
+	err = con.Select(&payouts, query, accountId, year)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the yearly payouts of user: %s!\nerr.Error(): %v\n", accountId, err.Error())
+	}
+   
+    if len(payouts) == 0 {
+        return nil, fmt.Errorf("Crash while fetching the user specific yearly payouts!\nerr.Error(): Couldn't find any payout for this year!\n")
+    }
+
+    totalPayout := Payouts{
+        PayoutDate: "TOTAL",
+    }
+    for i := range payouts {
+        totalPayout.AccountBalance += payouts[i].AccountBalance
+        totalPayout.AccountProfit += payouts[i].AccountProfit
+        totalPayout.DecimalPercentage += payouts[i].DecimalPercentage
+    }
+    payouts = append(payouts, totalPayout)
+
+    return payouts, nil
 }
 
 func FetchPayouts(closureId int) ([]Payouts, error) {
