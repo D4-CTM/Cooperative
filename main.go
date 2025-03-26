@@ -12,6 +12,126 @@ import (
 	"time"
 )
 
+func revApportationsHistory(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+	}
+    
+    year, err := strconv.Atoi(r.PostFormValue("year-selector"))
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+
+    transactions, err := backend.FetchTransactionsByYear(backend.LoginUser.UserId + "-CAP", year)
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+    }
+
+    content := map[string]any {
+        "Transactions": transactions,
+    }
+
+    w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/accHistory.html")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	tmpl.ExecuteTemplate(w, "transaction-history", content)
+}
+
+func revDepHistory(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+	}
+    
+    year, err := strconv.Atoi(r.PostFormValue("year-selector"))
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+
+    transactions, err := backend.FetchTransactionsByYear(backend.LoginUser.UserId + "-CAR", year)
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+    }
+
+    content := map[string]any {
+        "Transactions": transactions,
+    }
+
+    w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/accHistory.html")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	tmpl.ExecuteTemplate(w, "transaction-history", content)
+}
+
+func revAffYear(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+	}
+    
+    year, err := strconv.Atoi(r.PostFormValue("year-selector"))
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+
+    affiliates, err :=  backend.FetchAccountsReportInYear(year)
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+    }
+
+    content := map[string]any {
+        "Affiliates": affiliates,
+    }
+
+    w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/affReports.html")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	tmpl.ExecuteTemplate(w, "affiliates", content)
+}
+
 func revClosure(w http.ResponseWriter, r *http.Request) {
 	if len(backend.LoginUser.UserId) == 0 {
 		w.Header().Set("HX-Status", "400")
@@ -77,7 +197,7 @@ func revClosure(w http.ResponseWriter, r *http.Request) {
 		Id: closureId,
 	}
 	err = backend.FetchClosureById(&closure)
-    if err != nil {
+	if err != nil {
 		fmt.Println(err.Error())
 		w.Header().Set("HX-Status", "400")
 		w.Header().Set("HX-Message", err.Error())
@@ -751,6 +871,133 @@ func DashboardReviewClosures(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
+func DashboardAffiliateReports(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+
+    years, err := backend.FetchNewAccountYears()
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+    }
+
+    affiliates, err :=  backend.FetchAccountsReportInYear(years[0])
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+    }
+
+    content := map[string]any {
+        "Affiliates": affiliates,
+        "Years": years,
+    }
+
+    w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/affReports.html")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	tmpl.ExecuteTemplate(w, "dashboard-content", content)
+}
+
+func savingHistory(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+
+    years, err := backend.FetchTransactionsYears("CAR", backend.LoginUser.UserId)
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+    }
+   
+    transactions, err := backend.FetchTransactionsByYear(backend.LoginUser.UserId + "-CAR", years[0])
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+    }
+
+    content := map[string]any {
+        "TransactionAction": "deposits",
+        "Transactions": transactions,
+        "Years": years,
+        "Endpoint": "/review-deposit-history/",
+    }
+
+    w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/accHistory.html")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	tmpl.ExecuteTemplate(w, "dashboard-content", content)
+}
+
+func apportationHistory(w http.ResponseWriter, r *http.Request) {
+	if len(backend.LoginUser.UserId) == 0 {
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", "Please login first")
+		http.Redirect(w, r, "/login", http.StatusBadRequest)
+		return
+	}
+
+    years, err := backend.FetchTransactionsYears("CAP", backend.LoginUser.UserId)
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+    }
+   
+    transactions, err := backend.FetchTransactionsByYear(backend.LoginUser.UserId + "-CAP", years[0])
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		return
+    }
+
+    content := map[string]any {
+        "TransactionAction": "apportations",
+        "Transactions": transactions,
+        "Years": years,
+        "Endpoint": "/review-deposit-history/",
+    }
+
+    w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/accHistory.html")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	tmpl.ExecuteTemplate(w, "dashboard-content", content)
+}
+
 func main() {
 	static := http.FileServer(http.Dir("static"))
 	mux := http.NewServeMux()
@@ -758,7 +1005,10 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static/", static))
 
 	// basically requests
-	mux.HandleFunc("/review-closure/", revClosure)
+    mux.HandleFunc("/review-apportation-history/", revApportationsHistory)
+    mux.HandleFunc("/review-deposit-history/", revDepHistory)
+    mux.HandleFunc("/review-affiliate-year/", revAffYear)
+    mux.HandleFunc("/review-closure/", revClosure)
 	mux.HandleFunc("/modify-closure/", modClosure)
 	mux.HandleFunc("/register-closure/", regClosure)
 	mux.HandleFunc("/request-payment/", requestPayment)
@@ -767,7 +1017,10 @@ func main() {
 	mux.HandleFunc("/register-user/", registerUser)
 	mux.HandleFunc("/verify-user/", verifyUser)
 	// dashboard options
-	mux.HandleFunc("/dashboard-rev-closure/", DashboardReviewClosures)
+    mux.HandleFunc("/dashboard-savings-history/", savingHistory)
+    mux.HandleFunc("/dashboard-apportations-history/", apportationHistory)
+    mux.HandleFunc("/dashboard-affiliates-report/", DashboardAffiliateReports)
+    mux.HandleFunc("/dashboard-rev-closure/", DashboardReviewClosures)
 	mux.HandleFunc("/dashboard-reg-closure/", DashboardRegisterClosure)
 	mux.HandleFunc("/dashboard-deposits/", DashboardDepositHandle)
 	mux.HandleFunc("/dashboard-liquidations/", DashboardLiquidationHandle)

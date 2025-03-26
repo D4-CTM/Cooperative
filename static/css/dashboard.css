@@ -26,6 +26,10 @@ body {
     flex: 1 0 auto;
 }
 
+#options {
+    overflow: scroll;
+}
+
 .dropdown-options {
     display: none;
     flex: 0 1 auto;

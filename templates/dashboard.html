@@ -11,7 +11,19 @@
                 <button class="change-btn" type="submit" hx-post="/dashboard-payments/" hx-swap="innerHTML" hx-target="#display_data" hx-on::after-request="handleResponse(event)">Payments</button>
                 <button class="change-btn" type="submit" hx-post="/dashboard-liquidations/" hx-swap="innerHTML" hx-target="#display_data" hx-on::after-request="handleResponse(event)">Liquidations</button>
             </div>
+            <button class="dropdown-btn change-btn">Account history <i class="fa fa-caret-down"></i></button>
+            <div class="dropdown-options">
+                <button class="change-btn" type="submit" hx-post="/dashboard-savings-history/" hx-swap="innerHTML" hx-target="#display_data" hx-on::after-request="handleResponse(event)">Savings history</button>
+                <button class="change-btn" type="submit" hx-post="/dashboard-apportations-history/" hx-swap="innerHTML" hx-target="#display_data" hx-on::after-request="handleResponse(event)">Apportations history</button>
+                <button class="change-btn" type="submit" hx-post="/dashboard-Payouts-history/" hx-swap="innerHTML" hx-target="#display_data" hx-on::after-request="handleResponse(event)">Payouts</button>
+                <button class="change-btn" type="submit" hx-post="/dashboard-Loans-history/" hx-swap="innerHTML" hx-target="#display_data" hx-on::after-request="handleResponse(event)">Loans</button>
+            </div>
             {{ if eq .admin "T" }} 
+                <button class="dropdown-btn change-btn">Reports <i class="fa fa-caret-down"></i></button>
+                <div class="dropdown-options">
+                    <button class="change-btn" type="submit" hx-post="/dashboard-payouts-report/" hx-swap="innerHTML" hx-target="#display_data" hx-on::after-request="handleResponse(event)">Payouts reports</button>
+                    <button class="change-btn" type="submit" hx-post="/dashboard-affiliates-report/" hx-swap="innerHTML" hx-target="#display_data" hx-on::after-request="handleResponse(event)">New affiliates</button>
+                </div>
                 {{ if eq .closureValid "T" }}
                     <button class="dropdown-btn change-btn">Monthly closure <i class="fa fa-caret-down"></i></button>
                     <div class="dropdown-options">

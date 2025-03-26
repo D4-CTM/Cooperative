@@ -25,6 +25,136 @@ func getConnection() (*sqlx.DB, error) {
 	return db, nil
 }
 
+func FetchTransactionsByYear(accId string, year int) ([]Transactions, error) {
+	con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+    query := `SELECT *
+        FROM TRANSACTIONS t 
+        WHERE t.ACCOUNT_ID = ?
+        AND EXTRACT(YEAR FROM t.TRANSACTION_DATE) = ?
+        ORDER BY EXTRACT(YEAR FROM t.TRANSACTION_DATE) DESC;`
+    transactions := []Transactions{}
+    err = con.Select(&transactions, query, accId, year)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching transactions from %d of the account: %s!\nerr.Error() %v\n", year, accId, err.Error())
+    }
+
+    if len(transactions) == 0 {
+        return nil, fmt.Errorf("Crash while fetching the yearly transactions of account: %s!\nerr.Error(): did'n found any transactions", accId)
+    }
+
+    totalTransaction := Transactions{
+        TransactionId: "TOTAL",
+        Amount: 0,
+    }
+    for i := range transactions {
+        totalTransaction.Amount += transactions[i].Amount
+        transactions[i].FmtDate = transactions[i].Date.Format("2006-01-02")
+    }
+    transactions = append(transactions, totalTransaction)
+
+    return transactions, nil
+}
+
+func FetchTransactionsYears(accType string, accId string) ([]int, error) {
+	con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+    query := `SELECT EXTRACT(YEAR FROM t.TRANSACTION_DATE)
+        FROM TRANSACTIONS t
+        JOIN ACCOUNTS a
+        ON t.ACCOUNT_ID = a.ACCOUNT_ID
+        WHERE a.USER_ID = ? AND a.ACCOUNT_TYPE = ?
+        GROUP BY EXTRACT(YEAR FROM t.TRANSACTION_DATE)
+        ORDER BY EXTRACT(YEAR FROM t.TRANSACTION_DATE) DESC`
+    year := []int{}
+    err = con.Select(&year, query, accId, accType)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the years of transactions!\nerr.Error() %v\n", err.Error())
+    }
+
+    if len(year) == 0 {
+        return nil, fmt.Errorf("Crash while fetching the years of transactions!\nerr.Error(): did'n found any transaction")
+    }
+
+    return year, nil
+
+}
+
+func FetchNewAccountYears() ([]int, error) {
+	con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+    query := `SELECT EXTRACT(YEAR FROM HIRING_DATE)
+        FROM USERS
+        GROUP BY EXTRACT(YEAR FROM HIRING_DATE)
+        ORDER BY EXTRACT(YEAR FROM HIRING_DATE) DESC`
+    year := []int{}
+    err = con.Select(&year, query)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the affiliate report years!\nerr.Error() %v\n", err.Error())
+    }
+
+    if len(year) == 0 {
+        return nil, fmt.Errorf("Crash while fetching the afiliate report years!\nerr.Error(): did'n found any affiliats")
+    }
+
+    return year, nil
+}
+
+func FetchAccountsReportInYear(year int) ([]AffiliateReports, error) {
+	con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+
+    query := `SELECT 
+            MAX(u.USER_ID) AS user_id,
+            MAX(u.FIRST_NAME) || ' ' || MAX(u.FIRST_LASTNAME) AS name,
+            MAX(u.HIRING_DATE) AS hiring_date,
+            MAX(CASE WHEN a.ACCOUNT_TYPE = 'CAR' THEN a.BALANCE END) AS apportation_balance,
+            MAX(CASE WHEN a.ACCOUNT_TYPE = 'CAP' THEN a.BALANCE END) AS savings_balance,
+            SUM(a.BALANCE) AS total
+        FROM USERS u
+        JOIN ACCOUNTS a
+        ON u.USER_ID = a.USER_ID
+        WHERE EXTRACT(YEAR FROM HIRING_DATE) = ?
+        GROUP BY u.USER_ID`
+    affiliateReports := []AffiliateReports{}
+    err = con.Select(&affiliateReports, query, year)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching yearly affiliete report\nerr.Error(): %v\n", err.Error())
+    }
+
+    if len(affiliateReports) == 0 {
+        return nil, fmt.Errorf("Crash while fetching yearly affiliete report\nerr.Error(): Didn't find any new affiliats during the year %v\n", year)
+    }
+
+    totalAffiliates := AffiliateReports{
+        Name: "TOTAL",
+        UserId: fmt.Sprint(len(affiliateReports)),
+        HiringDateFmt: "",
+    }
+
+    for i := range affiliateReports {
+        totalAffiliates.ApportationBalance += affiliateReports[i].ApportationBalance
+        totalAffiliates.SavingsBalance += affiliateReports[i].SavingsBalance
+        totalAffiliates.Total += affiliateReports[i].Total
+        affiliateReports[i].HiringDateFmt = affiliateReports[i].HiringDate.Format("2006-01-02")
+    }
+
+    affiliateReports = append(affiliateReports, totalAffiliates)
+    return affiliateReports, nil
+}
+
 func GetPaymentIdOf(loanId string, paymentNumber string) (int, error) {
 	con, err := getConnection()
 	if err != nil {
@@ -127,7 +257,7 @@ func FetchPayments(loanId string) ([]Payments, error) {
 	}
 
 	for i := range payments {
-		payments[i].FmtDeadline = payments[i].Deadline.Format("2006-02-03")
+		payments[i].FmtDeadline = payments[i].Deadline.Format("2006-01-02")
 	}
 
 	return payments, nil

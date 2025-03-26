@@ -417,24 +417,54 @@ func (closurePayment *ClosurePayments) Fetch(db *sqlx.DB) error {
 }
 
 type Payouts struct {
-    PayoutId int `db:"PAYOUT_ID"`
-    ClosureId int `db:"CLOSURE_ID"`
-    AccountId string `db:"ACCOUNT_ID"`
-    AccountBalance float64`db:"ACCOUNT_BALANCE"`
-    ApportationPercentage int `db:"APPORTATION_PERCENTAGE"`
-    AccountProfit float64 `db:"ACCOUNT_PROFIT"`
-    DecimalPercentage float32 `db:"DECIMAL_PERCENTAGE"`
-    Name string `db:"NAME"`
+	PayoutId              int     `db:"PAYOUT_ID"`
+	ClosureId             int     `db:"CLOSURE_ID"`
+	AccountId             string  `db:"ACCOUNT_ID"`
+	AccountBalance        float64 `db:"ACCOUNT_BALANCE"`
+	ApportationPercentage int     `db:"APPORTATION_PERCENTAGE"`
+	AccountProfit         float64 `db:"ACCOUNT_PROFIT"`
+	DecimalPercentage     float32 `db:"DECIMAL_PERCENTAGE"`
+	Name                  string  `db:"NAME"`
 }
 
 func (payout *Payouts) Fetch(db *sqlx.DB) error {
-    query := `SELECT *, APPORTATION_PERCENTAGE/100.00 AS decimal_percentage
+	query := `SELECT *, APPORTATION_PERCENTAGE/100.00 AS decimal_percentage
         FROM payouts
         WHERE payout_id = ?`
-    err := db.Get(payout, query, payout.PayoutId)
-    if err != nil {
-        return fmt.Errorf("Crash while fetching a dividend!\nerr.Error() %v\n", err.Error())
-    }
-    return nil
+	err := db.Get(payout, query, payout.PayoutId)
+	if err != nil {
+		return fmt.Errorf("Crash while fetching a dividend!\nerr.Error() %v\n", err.Error())
+	}
+	return nil
 }
 
+type AffiliateReports struct {
+	UserId             string    `db:"USER_ID"`
+	Name               string    `db:"NAME"`
+	HiringDate         time.Time `db:"HIRING_DATE"`
+	SavingsBalance     float64   `db:"SAVINGS_BALANCE"`
+	ApportationBalance float64   `db:"APPORTATION_BALANCE"`
+	Total              float64   `db:"TOTAL"`
+    HiringDateFmt      string
+}
+
+func (affiliateReport *AffiliateReports) Fetch(db *sqlx.DB) error {
+	query := `SELECT 
+            MAX(u.USER_ID) AS user_id,
+            MAX(u.FIRST_NAME) || ' ' || MAX(u.FIRST_LASTNAME) AS name,
+            MAX(u.HIRING_DATE) AS hiring_date,
+            MAX(CASE WHEN a.ACCOUNT_TYPE = 'CAR' THEN a.BALANCE END) AS savings_balance,
+            MAX(CASE WHEN a.ACCOUNT_TYPE = 'CAP' THEN a.BALANCE END) AS apportation_balance,
+            SUM(a.BALANCE) AS total
+        FROM USERS u
+        JOIN ACCOUNTS a
+        ON u.USER_ID = a.USER_ID
+        WHERE a.USER_ID = ?
+        GROUP BY u.USER_ID;`
+	err := db.Get(affiliateReport, query, affiliateReport.UserId)
+	if err != nil {
+		return fmt.Errorf("Crash while fetching account reports!\nerr.Error(): %v\n", err.Error())
+	}
+    affiliateReport.HiringDateFmt = affiliateReport.HiringDate.Format("2006-03-02")
+    return nil
+}
