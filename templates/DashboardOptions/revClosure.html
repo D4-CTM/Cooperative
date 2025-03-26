@@ -16,9 +16,7 @@
             {{ block "review-data" .}} 
                 <div class="input-div">
                     <p>Closure description:</p>
-                    <textarea type="text" class="not-resizable" rows="5" readonly>
-                        {{ .Closure.Description }}
-                    </textarea>
+                    <textarea type="text" class="not-resizable" rows="5" readonly>{{ .Closure.Description }}</textarea>
                 </div>
                 <h2>Closure deposits</h2>
                 <table>
@@ -58,15 +56,17 @@
                 <table>
                     <tr>
                         <th>Account id</th>
+                        <th>Name</th>
                         <th>Apportation account<br>balance</th>
                         <th>apporatation<br>percentage</th>
-                        <th>profit earned</th>
+                        <th>profits earned</th>
                     </tr>
                     {{ range .Dividends }}
                         <tr>
                             <td>{{ .AccountId }}</td>
+                            <td>{{ .Name }}</td>
                             <td>{{ .AccountBalance }}</td>
-                            <td>{{ .ApportationPercentage }}</td>
+                            <td>{{ .DecimalPercentage }} %</td>
                             <td>{{ .AccountProfit }}</td>
                         </tr>
                     {{ end }}

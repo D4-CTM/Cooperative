@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func revClosure(w http.ResponseWriter, r *http.Request) {    
+func revClosure(w http.ResponseWriter, r *http.Request) {
 	if len(backend.LoginUser.UserId) == 0 {
 		w.Header().Set("HX-Status", "400")
 		w.Header().Set("HX-Message", "Please login first")
@@ -20,94 +20,106 @@ func revClosure(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    if r.Header.Get("HX-Request") == "" {
-        fmt.Println("\tWASN'T A HX-Request!")
-    }
-    
-    closureId, err := strconv.Atoi(r.PostFormValue("closure-select"))
-	
-	if err != nil {
-        fmt.Println(err.Error())
-		w.Header().Set("HX-Status", "400")
-		w.Header().Set("HX-Message", err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-        return ;
-    }
+	if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+	}
 
-    if closureId < 1 {
-		w.Header().Set("HX-Status", "202")
-		w.WriteHeader(http.StatusAccepted)
-        return ;
-    }
+	closureId, err := strconv.Atoi(r.PostFormValue("closure-select"))
 
-    ct := backend.ClosureTransaction{
-        ClosureId: closureId,
-    }
-    err = backend.Fetch(&ct)    
-	if err != nil {
-        fmt.Println(err.Error())
-		w.Header().Set("HX-Status", "400")
-		w.Header().Set("HX-Message", err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-        return ;
-    }
-
-    cp := backend.ClosurePayments{
-        ClosureId: closureId,
-    }
-    err = backend.Fetch(&cp)    
-	if err != nil {
-        fmt.Println(err.Error())
-		w.Header().Set("HX-Status", "400")
-		w.Header().Set("HX-Message", err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-        return ;
-    }
-    
-    payouts, err := backend.FetchPayouts(closureId)
-	if err != nil {
-        fmt.Println(err.Error())
-		w.Header().Set("HX-Status", "400")
-		w.Header().Set("HX-Message", err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-        return ;
-    }
-
-    content := map[string]any {
-        "ClosureTransactions": ct.Transactions,
-        "ClosurePayments": cp.CPT,
-        "Dividends": payouts,
-    }
-
-    w.Header().Set("HX-Status", "202")
-	w.WriteHeader(http.StatusAccepted)
-    tmpl, err := template.ParseFiles("./templates/DashboardOptions/revClosure.html")
 	if err != nil {
 		fmt.Println(err.Error())
-        return
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if closureId < 1 {
+		w.Header().Set("HX-Status", "202")
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+
+	ct := backend.ClosureTransaction{
+		ClosureId: closureId,
+	}
+	err = backend.Fetch(&ct)
+	if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	cp := backend.ClosurePayments{
+		ClosureId: closureId,
+	}
+	err = backend.Fetch(&cp)
+	if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	payouts, err := backend.FetchPayouts(closureId)
+	if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	closure := backend.Closures{
+		Id: closureId,
+	}
+	err = backend.FetchClosureById(&closure)
+    if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	content := map[string]any{
+		"ClosureTransactions": ct.Transactions,
+		"ClosurePayments":     cp.CPT,
+		"Dividends":           payouts,
+		"Closure":             closure,
+	}
+
+	w.Header().Set("HX-Status", "202")
+	w.WriteHeader(http.StatusAccepted)
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/revClosure.html")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
 	}
 	tmpl.ExecuteTemplate(w, "review-data", content)
 }
 
 func createClosure(r *http.Request) backend.Closures {
-    desc := r.PostFormValue("description")
-    month_name, err := time.Parse("January", r.PostFormValue("month"))
-    if err != nil {
-        fmt.Println(err.Error())
-    }
-    
-    year, err := strconv.Atoi(r.PostFormValue("year"))
-    if err != nil {
-        fmt.Println(err.Error())
-    }
-    
-    closure := backend.Closures{
-        Year: year,
-        Month: int(month_name.Month()),
-        Description: desc,
-    }
+	desc := r.PostFormValue("description")
+	month_name, err := time.Parse("January", r.PostFormValue("month"))
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
-    return closure
+	year, err := strconv.Atoi(r.PostFormValue("year"))
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	closure := backend.Closures{
+		Year:        year,
+		Month:       int(month_name.Month()),
+		Description: desc,
+	}
+
+	return closure
 }
 
 func modClosure(w http.ResponseWriter, r *http.Request) {
@@ -118,24 +130,24 @@ func modClosure(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Println("Starting register closure...")
-	
-    if r.Header.Get("HX-Request") == "" {
+
+	if r.Header.Get("HX-Request") == "" {
 		fmt.Println("\tWASN'T A HX-Request!")
 	}
-    closure := createClosure(r)
-    err := backend.Update(&closure)
+	closure := createClosure(r)
+	err := backend.Update(&closure)
 	if err != nil {
-        fmt.Println(err.Error())
+		fmt.Println(err.Error())
 		w.Header().Set("HX-Status", "400")
 		w.Header().Set("HX-Message", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-        return ;
-    }
+		return
+	}
 
-    w.Header().Set("hx-status", "200")
+	w.Header().Set("hx-status", "200")
 	w.Header().Set("hx-message", "Comment changed succesfully! You can check on the review closure tab!")
 	w.WriteHeader(http.StatusOK)
-    fmt.Println("Closure made!")
+	fmt.Println("Closure made!")
 }
 
 func regClosure(w http.ResponseWriter, r *http.Request) {
@@ -146,25 +158,25 @@ func regClosure(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Println("Starting register closure...")
-	
-    if r.Header.Get("HX-Request") == "" {
+
+	if r.Header.Get("HX-Request") == "" {
 		fmt.Println("\tWASN'T A HX-Request!")
 	}
 
-    closure := createClosure(r)
-    err := backend.Insert(&closure)
+	closure := createClosure(r)
+	err := backend.Insert(&closure)
 	if err != nil {
-        fmt.Println(err.Error())
+		fmt.Println(err.Error())
 		w.Header().Set("HX-Status", "400")
 		w.Header().Set("HX-Message", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-        return ;
-    }
+		return
+	}
 
-    w.Header().Set("hx-status", "200")
+	w.Header().Set("hx-status", "200")
 	w.Header().Set("hx-message", "Monthly closure registered succesfully! You can check on the review closures tab to check!")
 	w.WriteHeader(http.StatusOK)
-    fmt.Println("Closure made!")
+	fmt.Println("Closure made!")
 }
 
 func requestPayment(w http.ResponseWriter, r *http.Request) {
@@ -189,8 +201,8 @@ func requestPayment(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("HX-Status", "400")
 		w.Header().Set("HX-Message", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-        return
-    }
+		return
+	}
 
 	payment := backend.Payments{
 		PaymentId: payId,
@@ -237,8 +249,8 @@ func requestDeposit(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("HX-Status", "400")
 		w.Header().Set("HX-Message", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-	    return
-    }
+		return
+	}
 
 	w.Header().Set("hx-status", "200")
 	w.Header().Set("hx-message", "Deposit completed, check your account balance!")
@@ -550,8 +562,8 @@ func DashboardLoanHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("./templates/DashboardOptions/loan.html")
 	if err != nil {
 		fmt.Println(err.Error())
-	    return
-    }
+		return
+	}
 	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
@@ -577,8 +589,8 @@ func DashboardDepositHandle(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("./templates/DashboardOptions/transaction.html")
 	if err != nil {
 		fmt.Println(err.Error())
-	    return
-    }
+		return
+	}
 	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
@@ -625,8 +637,8 @@ func DashboardPaymentHandle(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("./templates/DashboardOptions/transaction.html")
 	if err != nil {
 		fmt.Println(err.Error())
-	    return
-    }
+		return
+	}
 	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
@@ -657,8 +669,8 @@ func DashboardLiquidationHandle(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("./templates/DashboardOptions/transaction.html")
 	if err != nil {
 		fmt.Println(err.Error())
-	    return
-    }
+		return
+	}
 	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
@@ -670,46 +682,46 @@ func DashboardRegisterClosure(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    endPoint := "/modify-closure/"
-    action := "Modify"
-    year, month, _ := time.Now().Date()
-    closure := backend.Closures{
-        Year: year,
-        Month: int(month),
-    }
-    err := backend.Fetch(&closure)
-    if err != nil {
-        fmt.Println(err.Error())
-        endPoint = "/register-closure/"
-        action = "Register"
-    }
+	endPoint := "/modify-closure/"
+	action := "Modify"
+	year, month, _ := time.Now().Date()
+	closure := backend.Closures{
+		Year:  year,
+		Month: int(month),
+	}
+	err := backend.Fetch(&closure)
+	if err != nil {
+		fmt.Println(err.Error())
+		endPoint = "/register-closure/"
+		action = "Register"
+	}
 
 	content := map[string]any{
-		"year":  year,
-		"month": month,
-        "endPoint": endPoint,
-        "action": action,
-    }
+		"year":     year,
+		"month":    month,
+		"endPoint": endPoint,
+		"action":   action,
+	}
 
 	w.Header().Set("HX-Status", "202")
 	w.WriteHeader(http.StatusAccepted)
 	tmpl, err := template.ParseFiles("./templates/DashboardOptions/regClosure.html")
 	if err != nil {
 		fmt.Println(err.Error())
-        return
+		return
 	}
 	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
-func DashboardReviewClosures(w http.ResponseWriter, r *http.Request) {    
+func DashboardReviewClosures(w http.ResponseWriter, r *http.Request) {
 	if len(backend.LoginUser.UserId) == 0 {
 		w.Header().Set("HX-Status", "400")
 		w.Header().Set("HX-Message", "Please login first")
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 		return
 	}
-    
-    closures, err := backend.FetchClosures()
+
+	closures, err := backend.FetchClosures()
 	if err != nil {
 		fmt.Println(err.Error())
 		w.Header().Set("HX-Status", "400")
@@ -718,23 +730,23 @@ func DashboardReviewClosures(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    if len(closures) == 0 {
+	if len(closures) == 0 {
 		w.Header().Set("HX-Status", "400")
 		w.Header().Set("HX-Message", "Couldn't find any closure registered!")
 		w.WriteHeader(http.StatusNotFound)
 		return
-    }
+	}
 
-    content := map[string]any {
-        "Closures": closures,
-    }
+	content := map[string]any{
+		"Closures": closures,
+	}
 
-    w.Header().Set("HX-Status", "202")
+	w.Header().Set("HX-Status", "202")
 	w.WriteHeader(http.StatusAccepted)
-    tmpl, err := template.ParseFiles("./templates/DashboardOptions/revClosure.html")
+	tmpl, err := template.ParseFiles("./templates/DashboardOptions/revClosure.html")
 	if err != nil {
 		fmt.Println(err.Error())
-        return
+		return
 	}
 	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
@@ -745,9 +757,9 @@ func main() {
 
 	mux.Handle("/static/", http.StripPrefix("/static/", static))
 
-    // basically requests
-    mux.HandleFunc("/review-closure/", revClosure)
-    mux.HandleFunc("/modify-closure/", modClosure)
+	// basically requests
+	mux.HandleFunc("/review-closure/", revClosure)
+	mux.HandleFunc("/modify-closure/", modClosure)
 	mux.HandleFunc("/register-closure/", regClosure)
 	mux.HandleFunc("/request-payment/", requestPayment)
 	mux.HandleFunc("/request-deposit/", requestDeposit)
@@ -755,19 +767,18 @@ func main() {
 	mux.HandleFunc("/register-user/", registerUser)
 	mux.HandleFunc("/verify-user/", verifyUser)
 	// dashboard options
-    mux.HandleFunc("/dashboard-rev-closure/", DashboardReviewClosures)
-    mux.HandleFunc("/dashboard-reg-closure/", DashboardRegisterClosure)
-    mux.HandleFunc("/dashboard-deposits/", DashboardDepositHandle)
+	mux.HandleFunc("/dashboard-rev-closure/", DashboardReviewClosures)
+	mux.HandleFunc("/dashboard-reg-closure/", DashboardRegisterClosure)
+	mux.HandleFunc("/dashboard-deposits/", DashboardDepositHandle)
 	mux.HandleFunc("/dashboard-liquidations/", DashboardLiquidationHandle)
 	mux.HandleFunc("/dashboard-payments/", DashboardPaymentHandle)
 	mux.HandleFunc("/dashboard-user/", DashboardUserHandler)
 	mux.HandleFunc("/dashboard-loan/", DashboardLoanHandler)
-    // general gui options
-    mux.HandleFunc("/dashboard", DashboardUserHandler)
+	// general gui options
+	mux.HandleFunc("/dashboard", DashboardUserHandler)
 	mux.HandleFunc("/register", RegisterHandler)
 	mux.HandleFunc("/login", LoginHandler)
 
 	fmt.Println("Server started at:\nlocalhost:5312/")
 	log.Fatal(http.ListenAndServe(":5412", mux))
 }
-

@@ -424,6 +424,7 @@ type Payouts struct {
     ApportationPercentage int `db:"APPORTATION_PERCENTAGE"`
     AccountProfit float64 `db:"ACCOUNT_PROFIT"`
     DecimalPercentage float32 `db:"DECIMAL_PERCENTAGE"`
+    Name string `db:"NAME"`
 }
 
 func (payout *Payouts) Fetch(db *sqlx.DB) error {
