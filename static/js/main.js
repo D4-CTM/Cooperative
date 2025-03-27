@@ -76,13 +76,19 @@ function verifyPaymentAmount(input) {
     if (input.value.length != 0) {
         lastInputString = input.value;
     }
-    input.value = lastInputString;
 
+    console.log(input.min)
     if (parseFloat(input.value) > input.max) {
         input.value = input.max;
-    } else if (input.value < 0) {
-        input.value = 0;
+        lastInputString = input.value;
+        return;
+    } else if (parseFloat(input.value) < parseFloat(0.01)) {
+        input.value = 0.01;
+        lastInputString = input.value;
+        return ;
     }
+
+    input.value = lastInputString;
 }
 
 function handleResponse(event) {

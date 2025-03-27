@@ -16,7 +16,7 @@
                 </div>
             </div>
             <div class="form-buttons">
-                <input type="button" name="accept-btn" value="{{ .action }} closure" hx-post="{{ .endPoint }}" hx-on:click="validateForm(event)" hx-on::after-request="handleResponse(event)"> 
+                <input type="button" name="accept-btn" value="{{ .action }} closure" hx-post="{{ .endPoint }}" hx-on:htmx:before-request="validateForm(event)" hx-on::after-request="handleResponse(event)"> 
             </div>
         </form>
 {{ end }}

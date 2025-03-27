@@ -41,6 +41,14 @@
                 <p>Password*:</p>
                 <input type="password" name="password" value="" autocomplete="off" minlength="5" maxlength="25"  placeholder="Password123" required/>
             </div>
+            <div class="input-div">
+                <p>Is admin?: 
+                <label class="switch"> 
+                    <input name="admin" type="checkbox">
+                    <span class="slider"></span>
+                </label>
+                </p>
+            </div>
         </div>
         <div class="row-parent-input-div">
              <div class="input-div">
@@ -75,7 +83,7 @@
       </div>
       <div id="button-div">
         <input type="submit" name="return_btn" id="return_btn" hx-post="/" value="Cancel"/>
-        <input type="submit" name="submit_btn" id="submit_btn" hx-post="/register-user/" hx-targer="#register_js" hx-swap="innerHTML"  hx-on:click="validateForm(event)" hx-on::after-request="handleResponse(event)" value="Register"/>
+        <input type="submit" name="submit_btn" id="submit_btn" hx-post="/register-user/" hx-targer="#register_js" hx-swap="innerHTML"  hx-on:htmx:before-request="validateForm(event)" hx-on::after-request="handleResponse(event)" value="Register"/>
       </div>
     </form>
     <p id="login-txt">Already have an account?<a href="/login">login</a></p>

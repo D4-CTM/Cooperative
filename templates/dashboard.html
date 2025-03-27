@@ -33,7 +33,6 @@
                 {{ else }}
                     <button class="change-btn" type="submit" hx-post="/dashboard-rev-closure/" hx-swap="innerHTML" hx-target="#display_data" hx-on::after-request="handleResponse(event)">Review closures</button>
                 {{ end }}
-                <button class="change-btn" type="submit" hx-post="/dashboard-n_users/" hx-swap="innerHTML" hx-target="#display_data">Users</button>
             {{ end }}
         </div>
         <div id="display_data">

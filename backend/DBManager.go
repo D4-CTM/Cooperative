@@ -25,6 +25,75 @@ func getConnection() (*sqlx.DB, error) {
 	return db, nil
 }
 
+func FetchPayoutsByYear(year int) ([]Payouts, error) { 
+    con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+    query := `
+        SELECT 
+            p.*, 
+            APPORTATION_PERCENTAGE/100.00 AS decimal_percentage,
+            c.CLOSURE_YEAR || '/' || c.CLOSURE_MONTH AS PAYOUT_DATE,
+            u.FIRST_NAME || ' ' || u.FIRST_LASTNAME AS Name
+        FROM payouts p 
+        JOIN ACCOUNTS a 
+        ON a.ACCOUNT_ID = p.ACCOUNT_ID
+        JOIN USERS u
+        ON a.USER_ID = u.USER_ID 
+        JOIN CLOSURES c
+        ON c.CLOSURE_ID = p.CLOSURE_ID
+        WHERE c.CLOSURE_YEAR = ?`
+    payouts := []Payouts{}
+    err = con.Select(&payouts, query, year)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the payouts!\nerr.Error() %v\n", err.Error())
+    }
+
+    if len(payouts) == 0 {
+        return nil, fmt.Errorf("Crash while fetching the payouts!\nerr.Error(): did'n found any payouts!")
+    }
+
+    totalPayout := Payouts{
+        AccountId: "TOTAL",
+        Name: fmt.Sprint(len(payouts)),
+    }
+    for i := range payouts {
+        totalPayout.AccountBalance += payouts[i].AccountBalance
+        totalPayout.AccountProfit += payouts[i].AccountProfit
+        totalPayout.DecimalPercentage += payouts[i].DecimalPercentage
+    }
+    payouts = append(payouts, totalPayout)
+    
+    return payouts, nil
+}
+
+func FetchClosureYears() ([]int, error) {
+    con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+    query := `SELECT CLOSURE_YEAR
+        FROM CLOSURES c
+        JOIN PAYOUTS p
+        ON p.CLOSURE_ID = c.CLOSURE_ID
+        GROUP BY CLOSURE_YEAR
+        ORDER BY CLOSURE_YEAR  DESC`
+    year := []int{}
+    err = con.Select(&year, query)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the payouts years!\nerr.Error() %v\n", err.Error())
+    }
+
+    if len(year) == 0 {
+        return nil, fmt.Errorf("Crash while fetching the payouts years!\nerr.Error(): did'n found any payouts on any year")
+    }
+
+    return year, nil
+}
+
 func FetchLoanTransactionsYear(userId string) ([]int, error) {
     con, err := getConnection()
 	if err != nil {
@@ -202,7 +271,7 @@ func FetchAccountsReportInYear(year int) ([]AffiliateReports, error) {
         FROM USERS u
         JOIN ACCOUNTS a
         ON u.USER_ID = a.USER_ID
-        WHERE EXTRACT(YEAR FROM HIRING_DATE) = ?
+        WHERE EXTRACT(YEAR FROM HIRING_DATE) = ? AND u.IS_ACTIVE = TRUE
         GROUP BY u.USER_ID`
     affiliateReports := []AffiliateReports{}
     err = con.Select(&affiliateReports, query, year)
@@ -385,7 +454,7 @@ func FetchPayments(loanId string) ([]Payments, error) {
                     ON p.PAYMENT_ID = pt.PAYMENT_ID
                 LEFT JOIN transactions t
                     ON pt.TRANSACTION_ID = t.TRANSACTION_ID
-            WHERE p.LOAN_ID = ? AND p.IS_PAYED = FALSE
+            WHERE p.LOAN_ID = ?
                 GROUP BY p.PAYMENT_ID`
 	payments := []Payments{}
 	err = con.Select(&payments, query, loanId)
@@ -397,9 +466,17 @@ func FetchPayments(loanId string) ([]Payments, error) {
 		return nil, fmt.Errorf("There are no payments left!\nTo access this you'll need a loan first!\n")
 	}
 
+    totalPayment := Payments{
+        PaymentNumber: "TOTAL",
+    }
 	for i := range payments {
-		payments[i].FmtDeadline = payments[i].Deadline.Format("2006-01-02")
+		totalPayment.PMT += payments[i].PMT
+		totalPayment.IPMT += payments[i].IPMT
+		totalPayment.PPMT += payments[i].PPMT
+        totalPayment.AmountPayed += payments[i].AmountPayed
+        payments[i].FmtDeadline = payments[i].Deadline.Format("2006-01-02")
 	}
+    payments = append(payments, totalPayment)
 
 	return payments, nil
 }
@@ -419,20 +496,19 @@ func GetBalanceOf(id string) (float64, error) {
 	return balance, nil
 }
 
-func GrantAdminTo(id string, admin bool) error {
+func GetProfitOf(userId string) (float64, error){
 	con, err := getConnection()
 	if err != nil {
-		return err
+		return 10000, err
 	}
 	defer con.Close()
-	query := `CALL sp_grant_admin_to(?, ?)`
-
-	_, err = con.Exec(query, id, admin)
-	if err != nil {
-		return fmt.Errorf("There was an error granting admin to %s\nError(): %s\n", id, err.Error())
-	}
-
-	return nil
+    query := `SELECT profit FROM account_profit WHERE account_id = ?`
+    var profit float64
+    err = con.Get(&profit, query, userId + "-CAR")
+    if err != nil {
+        return -1, fmt.Errorf("Coudln't fetch the profit of: %s\nerr.Error(): %v\n", userId, err.Error())
+    }
+    return profit, nil
 }
 
 func GetLoanIdOfUser(id string) (string, error) {

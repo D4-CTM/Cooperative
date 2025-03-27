@@ -43,7 +43,7 @@ type Users struct {
 }
 
 func (user *Users) Insert(db *sqlx.DB) error {
-	query := `CALL sp_insert_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+	query := `CALL sp_insert_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 	_, err := db.Exec(query,
 		sql.Out{Dest: &user.UserId},
 		user.Password,
@@ -64,7 +64,8 @@ func (user *Users) Insert(db *sqlx.DB) error {
 		user.CreatedBy,
 		user.CreationDate,
 		user.ModifiedBy,
-		user.LastModificationDate)
+		user.LastModificationDate,
+		user.Admin)
 
 	if err != nil {
 		return fmt.Errorf("Crash at user insert!\nerr.Error(): %v\n", err.Error())
@@ -75,7 +76,7 @@ func (user *Users) Insert(db *sqlx.DB) error {
 }
 
 func (user *Users) Update(db *sqlx.DB) error {
-	query := `CALL sp_update_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+	query := `CALL sp_update_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,)`
 	_, err := db.Exec(query,
 		sql.Out{Dest: &user.UserId},
 		user.Password,
@@ -96,7 +97,8 @@ func (user *Users) Update(db *sqlx.DB) error {
 		user.CreatedBy,
 		user.CreationDate,
 		user.ModifiedBy,
-		user.LastModificationDate)
+		user.LastModificationDate,
+		user.Admin)
 
 	if err != nil {
 		return fmt.Errorf("Crash while updating user\nerr.Error(): %v\n", err.Error())
@@ -417,15 +419,15 @@ func (closurePayment *ClosurePayments) Fetch(db *sqlx.DB) error {
 }
 
 type Payouts struct {
-	PayoutId              int       `db:"PAYOUT_ID"`
-	ClosureId             int       `db:"CLOSURE_ID"`
-	AccountId             string    `db:"ACCOUNT_ID"`
-	AccountBalance        float64   `db:"ACCOUNT_BALANCE"`
-	ApportationPercentage int       `db:"APPORTATION_PERCENTAGE"`
-	AccountProfit         float64   `db:"ACCOUNT_PROFIT"`
-	DecimalPercentage     float32   `db:"DECIMAL_PERCENTAGE"`
-	PayoutDate            string    `db:"PAYOUT_DATE"`
-	Name                  string    `db:"NAME"`
+	PayoutId              int     `db:"PAYOUT_ID"`
+	ClosureId             int     `db:"CLOSURE_ID"`
+	AccountId             string  `db:"ACCOUNT_ID"`
+	AccountBalance        float64 `db:"ACCOUNT_BALANCE"`
+	ApportationPercentage int     `db:"APPORTATION_PERCENTAGE"`
+	AccountProfit         float64 `db:"ACCOUNT_PROFIT"`
+	DecimalPercentage     float32 `db:"DECIMAL_PERCENTAGE"`
+	PayoutDate            string  `db:"PAYOUT_DATE"`
+	Name                  string  `db:"NAME"`
 }
 
 func (payout *Payouts) Fetch(db *sqlx.DB) error {
@@ -471,11 +473,76 @@ func (affiliateReport *AffiliateReports) Fetch(db *sqlx.DB) error {
 }
 
 type LoanTransactions struct {
-    LoanId string `db:"LOAN_ID"`
-    TransactionId string `db:"TRANSACTION_ID"`
-    Amount  float64 `db:"TRANSACTION_AMMOUNT"`
-    Date time.Time `db:"TRANSACTION_DATE"`
-    PaymentNo string `db:"PAYMENT_NUMBER"`
-    FmtDate string
+	LoanId        string    `db:"LOAN_ID"`
+	TransactionId string    `db:"TRANSACTION_ID"`
+	Amount        float64   `db:"TRANSACTION_AMMOUNT"`
+	Date          time.Time `db:"TRANSACTION_DATE"`
+	PaymentNo     string    `db:"PAYMENT_NUMBER"`
+	FmtDate       string
+}
+
+type Accounts struct {
+	UserID               string    `db:"USER_ID"`
+	AccountType          string    `db:"ACCOUNT_TYPE"`
+	AccountId            string    `db:"ACCOUNT_ID"`
+	Balance              float64   `db:"BALANCE"`
+	CreatedBy            string    `db:"CREATED_BY"`
+	CreationDate         time.Time `db:"CREATION_DATE"`
+	Modified             string    `db:"MODIFIED_BY"`
+	LastModificationDate time.Time `db:"LAST_MODIFICATION_DATE"`
+}
+
+func (account *Accounts) Fetch(db *sqlx.DB) error {
+	query := `SELECT *
+        FROM ACCOUNTS c
+        WHERE c.USER_ID = ?
+        AND c.ACCOUNT_TYPE = ?`
+	err := db.Get(account, query, account.UserID, account.AccountType)
+	if err != nil {
+		return fmt.Errorf("Error while fetching the account!\nerr.Error(): %v\n", err.Error())
+	}
+	return nil
+}
+
+type Liquidations struct {
+	Id         int            `db:"LIQUIDATION_ID"`
+	AccountId  string         `db:"ACCOUNT_ID"`
+	Type       string         `db:"LIQUIDATION_TYPE"`
+	Date       time.Time      `db:"RETIREMENT_DATE"`
+	TotalMoney float64        `db:"TOTAL_MONEY"`
+	Comment    sql.NullString `db:"TRANSACTION_COMMENT"`
+	DateFmt    string
+}
+
+func (liquidation *Liquidations) Insert(db *sqlx.DB) error {
+	if liquidation.Type == "P" {
+		query := `CALL sp_create_partial_liquidation(?,?,?,?,?)`
+		_, err := db.Exec(query,
+			sql.Out{Dest: &liquidation.Id},
+			liquidation.AccountId,
+			liquidation.TotalMoney,
+			liquidation.Date,
+			liquidation.Comment)
+		if err != nil {
+			return fmt.Errorf("Crash while inserting the partial liquidation!\nerr.Error(): %v\n", err.Error())
+		}
+		return nil
+	} else if liquidation.Type == "T" {
+		query := `CALL sp_create_total_liquidation(?,?,?,?)`
+		_, err := db.Exec(query,
+			sql.Out{Dest: &liquidation.Id},
+			liquidation.AccountId,
+			liquidation.Date,
+			liquidation.Comment)
+		if err != nil {
+			return fmt.Errorf("Crash while inserting the total liquidation!\nerr.Error(): %v\n", err.Error())
+		}
+		return nil
+	}
+	return fmt.Errorf("The liquidation type should be (T)otal or (P)artial")
+}
+
+func (liquidation *Liquidations) Update(db *sqlx.DB) error {
+    return fmt.Errorf("Liquidation updates are not suppoerted at this time!")
 }
 

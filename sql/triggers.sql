@@ -26,13 +26,13 @@ BEGIN
   SET n.loan_id = n.user_id || '-PT'  || LPAD(next_val, 5, '0');
 END;
 
-CREATE OR REPLACE FUNCTION fn_calc_IPMT(capital NUMERIC(8,2), interest NUMERIC(8,2), v_months INT)
+CREATE OR REPLACE FUNCTION fn_calc_IPMT(capital NUMERIC(18,2), interest NUMERIC(18,2), v_months INT)
 LANGUAGE SQL
 RETURNS NUMERIC(8,2)
 DETERMINISTIC
 RETURN capital * CAST(interest / v_months AS DOUBLE);
 
-CREATE OR REPLACE FUNCTION fn_calc_pmt(capital NUMERIC(8,2), interest NUMERIC(6,6), v_months INT)
+CREATE OR REPLACE FUNCTION fn_calc_pmt(capital NUMERIC(18,2), interest NUMERIC(6,6), v_months INT)
 LANGUAGE SQL
 RETURNS NUMERIC(8,2)
 DETERMINISTIC
@@ -43,11 +43,11 @@ AFTER INSERT ON loans
 REFERENCING NEW AS n
 FOR EACH ROW
 BEGIN ATOMIC
-	DECLARE PMT NUMERIC(8,2);
-	DECLARE capital NUMERIC(8,2);
+	DECLARE PMT NUMERIC(18,2);
+	DECLARE capital NUMERIC(18,2);
 	DECLARE interest_rate NUMERIC(6,6);
-    DECLARE IPMT NUMERIC(8,2);    
-    DECLARE PPMT NUMERIC(8,2);
+    DECLARE IPMT NUMERIC(18,2);    
+    DECLARE PPMT NUMERIC(18,2);
 	DECLARE i INT;
 	
 	SET capital = n.requested_amount;
@@ -59,7 +59,7 @@ BEGIN ATOMIC
 	  SET PPMT = PMT - IPMT;
 
 	  INSERT INTO payments(loan_id, payment_number, deadline, interest_to_pay, capital_to_pay)
-	  VALUES(loan_id, LPAD((i+1), 5, '0'), ADD_MONTHS(n.loan_date, (i+1)), IPMT, PPMT);
+	  VALUES(loan_id, LPAD((i+1), 5, '0'), ADD_MONTHS(n.loan_date, (i)), IPMT, PPMT);
 	  SET capital = capital - PPMT;
     SET i = i + 1;
   END WHILE;

@@ -3,14 +3,14 @@
     <form id="form-div">
         <div class="form-content">
             <div class="input-div">
-                <p>Amount to {{ .action }}:</p>
+                <p id="AmountData">Amount to {{ .action }}:</p>
                 <input id="MaxAmount" type="number" name="amount" value="{{ .MaxAmount }}" min="{{ .MinAmount }}" max="{{ .MaxAmount }}" step="0.01" oninput="verifyPaymentAmount(this)">
             </div>
             <div class="input-div">
                 <p>Description:</p>
                 <textarea type="text" name="description" rows="5" placeholder="Transaction made by: {{ .UserName }}."></textarea>
             </div>
-            <div class="input-div">
+            <div class="input-div" id="Account-Type">
                 <p>Into which account will you deposit?</p>
                 <div class="loan-type">
                     {{ if not (eq .type "Liquidation")}}
@@ -45,11 +45,48 @@
                     </select>
                 </div>
             {{ else if eq .type "Liquidation" }}
+                <div class="input-div">
+                    <p>Which type of liquidation would you do?</p>
+                    <div class="loan-type">
+                        <label><input type="radio" name="liqType" value="T" checked="checked" oninput="OnTypeSelected(this)"> Total</label>
+                        <label><input type="radio" name="liqType" value="P" oninput="OnTypeSelected(this)"> Parcial</label>
+                    </div>
+                </div>
+                <script>
+                    const maxAmount = document.getElementById("MaxAmount");
+                    const accType = document.getElementById("Account-Type");
+                    const AmountData = document.getElementById("AmountData");
+                    
+                    function OnTypeSelected(input) {
+                      
+                        if (input.value === "T") {
+                            AmountData.innerText = "You'll retire all the money in your accounts!";
+                            maxAmount.style.display = "none";
+                            accType.style.display = "none;"
+                        } else {
+                            AmountData.value = "Amount to retire:";
+                            maxAmount.style.display = "";
+                            accType.style.display = "flex";
+                        }
+                    }
+                    OnTypeSelected(document.getElementsByName("liqType")[0]);
 
+                    function showAll() {
+                        if (maxAmount.style.display === "none") {
+                            maxAmount.maxAmount = 0.01
+                            maxAmount.value = 0.01
+                            maxAmount.style.display = "";
+                        }
+                        if (accType.style.display == "none") {
+                            accType.style.display = "flex";
+                        }
+                    }
+
+                </script>
             {{ end }}
         </div>
         <div class="form-buttons">
-            <input type="submit" id="submit-button"  name="accept-btn" value="Make transaction" hx-post="{{ .endpoint }}" hx-on:click="validateForm(event)" hx-on::after-request="handleResponse(event)">
+            <input type="submit" id="submit-button"  name="accept-btn" value="Make transaction" hx-post="{{ .endpoint }}" onclick="showAll()"  hx-on:htmx:before-request="validateForm(event)" hx-on::after-request="handleResponse(event)">
         </div>
     </form>
 {{ end }}

@@ -17,7 +17,7 @@ DROP TABLE IF EXISTS liquidation_transactions;
 
 -- usuarios
 CREATE TABLE IF NOT EXISTS users (
-	user_id CHAR(8) UNIQUE NOT NULL, --Generated via trigger & sequence ('AF-' || LPAD(nexval('user_seq'), 5, '0'))
+	user_id CHAR(8) UNIQUE NOT NULL,
 	password VARCHAR(25) NOT NULL CHECK (LENGTH(password) > 5),
 	first_name VARCHAR(50) NOT NULL,
 	second_name VARCHAR(50),
@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS users (
 	PRIMARY KEY (user_id)
 );
 
+CREATE INDEX idx_login_search ON users(user_id, password);
+CREATE INDEX idx_date_search ON users(hiring_date);
+
 CREATE TABLE IF NOT EXISTS phone_numbers (
 	user_id CHAR(8) NOT NULL,
 	user_phone_number INT NOT NULL UNIQUE,
@@ -53,15 +56,17 @@ CREATE TABLE IF NOT EXISTS phone_numbers (
 -- prestamos
 CREATE TABLE IF NOT EXISTS loans (
 	user_id CHAR(8) NOT NULL,
-	loan_id CHAR(16) UNIQUE NOT NULL, -- Generated via trigger(user_id + "-PT" + LPAD(nexval(loan_seq), 5, '0')) - done
+	loan_id CHAR(16) UNIQUE NOT NULL,
 	loan_periods INT CHECK (loan_periods <= 12),
 	loan_interest NUMERIC(3,3) NOT NULL DEFAULT 0.15 CHECK (loan_interest BETWEEN 0 AND 1),
-    requested_amount NUMERIC(8,2) NOT NULL CHECK (REQUESTED_AMOUNT >= 120),
+    requested_amount NUMERIC(18, 2) NOT NULL CHECK (REQUESTED_AMOUNT >= 120),
 	loan_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	is_payed BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (loan_id),
 	FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+
+CREATE INDEX idx_loan_creator ON loans(user_id);
 
 -- pagos
 CREATE TABLE IF NOT EXISTS payments (
@@ -69,20 +74,23 @@ CREATE TABLE IF NOT EXISTS payments (
 	loan_id CHAR(16) NOT NULL,
 	payment_number char(5) NOT NULL, -- Generated via trigger - done
 	deadline DATE NOT NULL,
-	interest_to_pay NUMERIC(8,2),
-	capital_to_pay NUMERIC(8,2),
-	amount_to_pay NUMERIC(8,2) NOT NULL GENERATED ALWAYS AS (interest_to_pay + capital_to_pay),
+	interest_to_pay NUMERIC(18, 2),
+	capital_to_pay NUMERIC(18, 2),
+	amount_to_pay NUMERIC(18, 2) NOT NULL GENERATED ALWAYS AS (interest_to_pay + capital_to_pay),
 	is_payed BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (loan_id, payment_number),
 	FOREIGN KEY (loan_id) REFERENCES loans(loan_id)
 );
+
+CREATE INDEX idx_payment_id ON payments(payment_id);
+CREATE INDEX idx_payment_id ON payments(deadline);
 
 -- cuenta
 CREATE TABLE IF NOT EXISTS accounts (
 	user_id CHAR(8) NOT NULL,
 	account_type char(3) NOT NULL CHECK(account_type IN ('CAP', 'CAR')),
 	account_id char(12) UNIQUE NOT NULL GENERATED ALWAYS AS (user_id || '-' || account_type),
-	balance NUMERIC(8,2) NOT NULL DEFAULT 0 CHECK(balance >= 0),
+	balance NUMERIC(18, 2) NOT NULL DEFAULT 0 CHECK(balance >= 0),
 	created_by VARCHAR(101) NOT NULL,
 	creation_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	modified_by VARCHAR(101),
@@ -90,6 +98,9 @@ CREATE TABLE IF NOT EXISTS accounts (
 	PRIMARY KEY(account_id),
 	FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+
+CREATE INDEX idx_account_owner ON accounts(user_id);
+CREATE INDEX idx_account_type_owner ON accounts(user_id, account_type);
 
 -- Ganancias de los dividendos a nombre de la cuenta
 CREATE TABLE IF NOT EXISTS account_profit (
@@ -104,11 +115,13 @@ CREATE TABLE IF NOT EXISTS transactions (
 	account_id CHAR(12) NOT NULL,
 	transaction_id VARCHAR(20) UNIQUE NOT NULL,
 	transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
-	transaction_ammount NUMERIC(8,2) NOT NULL CHECK(transaction_ammount > 0),
+	transaction_ammount NUMERIC(18, 2) NOT NULL CHECK(transaction_ammount > 0),
 	transaction_comment VARCHAR(255),
 	PRIMARY KEY (transaction_id),
 	FOREIGN KEY (account_id) REFERENCES accounts(account_id)
 );
+
+CREATE INDEX idx_transaction_author ON transactions(account_id);
 
 -- Cierre mensual
 CREATE TABLE IF NOT EXISTS closures (
@@ -118,6 +131,8 @@ CREATE TABLE IF NOT EXISTS closures (
 	description VARCHAR(255) NOT NULL,
 	PRIMARY KEY(closure_id)
 );
+
+CREATE INDEX idx_closure_date ON closures(closure_month, closure_year);
 
 -- transacciones de pago (realizadas por el usuario)
 CREATE TABLE IF NOT EXISTS payment_transactions (
@@ -151,28 +166,35 @@ CREATE TABLE IF NOT EXISTS payouts (
 	payout_id INT NOT NULL UNIQUE GENERATED ALWAYS AS IDENTITY,
 	closure_id INT,
 	account_id CHAR(12),
-	account_balance NUMERIC(8,2),
+	account_balance NUMERIC(18, 2),
 	apportation_percentage INT,
-	account_profit NUMERIC(8,2),
+	account_profit NUMERIC(18, 2),
 	PRIMARY KEY (payout_id),
 	FOREIGN KEY (closure_id) REFERENCES closures(closure_id),
 	FOREIGN KEY (account_id) REFERENCES accounts(account_id)
 );
+
+CREATE INDEX idx_payout_owner ON payouts(account_id);
+CREATE INDEX idx_payout_closure ON payouts(closure_id);
 
 CREATE TABLE IF NOT EXISTS liquidations (
 	liquidation_id INT NOT NULL UNIQUE GENERATED ALWAYS AS IDENTITY,
 	account_id CHAR(12) NOT NULL,
 	liquidation_type CHAR(1) NOT NULL CHECK (liquidation_type IN ('T', 'P')),
 	retirement_date DATE NOT NULL DEFAULT CURRENT_DATE,
-	total_money DECIMAL(8, 2),
+	total_money DECIMAL(18, 2), --retired money
 	PRIMARY KEY(liquidation_id),
 	FOREIGN KEY (account_id) REFERENCES accounts(account_id)
 );
 
+CREATE INDEX idx_account_liquidated ON liquidations(account_id);
+CREATE INDEX idx_account_liquidation_type ON liquidations(account_id, liquidation_type);
+
+
 CREATE TABLE IF NOT EXISTS liquidation_payments (
 	liquidation_id INT NOT NULL,
 	payment_id INT NOT NULL,
-	PRIMARY KEY (liquidation_id),
+	PRIMARY KEY (liquidation_id, payment_id),
 	FOREIGN KEY (liquidation_id) REFERENCES liquidations(liquidation_id),
 	FOREIGN KEY (payment_id) REFERENCES payments(payment_id)
 );
@@ -180,7 +202,7 @@ CREATE TABLE IF NOT EXISTS liquidation_payments (
 CREATE TABLE IF NOT EXISTS liquidation_transactions (
 	liquidation_id INT NOT NULL,
 	transaction_id VARCHAR(20) NOT NULL,
-	PRIMARY KEY (transaction_id),
+	PRIMARY KEY (transaction_id, liquidation_id),
 	FOREIGN KEY (liquidation_id) REFERENCES liquidations,
 	FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id)
 );

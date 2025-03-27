@@ -1,0 +1,49 @@
+{{ define "dashboard-content" }}
+    <h1>Accounts</h1>
+    <div class="fl-row">
+        <div class="content-div">
+            <h3>Apportations account</h3>    
+            <div class="input-div">
+                <p>Account id:</p>
+                <input type="text" name="sav-id" value="{{ .Apportation.AccountId }}" readonly>    
+            </div>
+            <div class="input-div">
+                <p>Account type:</p>
+                <input type="text" name="sav-id" value="Apportations" readonly>    
+            </div>
+            <div class="input-div">
+                <p>Account balance:</p>
+                <input type="text" name="sav-id" value="{{ .Apportation.Balance }}" readonly>    
+            </div>
+       </div> 
+        <div class="content-div">
+            <h3>Savings account</h3>
+            <div class="input-div">
+                <p>Account id:</p>
+                <input type="text" name="sav-id" value="{{ .Savings.AccountId }}" readonly>    
+            </div>
+            <div class="input-div">
+                <p>Account type:</p>
+                <input type="text" name="sav-id" value="Savings" readonly>    
+            </div>
+            <div class="input-div">
+                <p>Account balance:</p>
+                <input type="text" name="sav-id" value="{{ .Savings.Balance }}" readonly>
+            </div>
+       </div> 
+    </div>
+    <div class="content-div">
+        <h3>Profits</h3>
+        <div class="input-div">
+            <p>Money earned in dividends!:</p>
+            <input type="text" name="sav-id" value="{{ .Profits }}" readonly>
+        </div>
+    </div>
+    <div class="content-div">
+        <h3>Total money of {{ .Name}}</h3>
+        <div class="input-div">
+            <p>All of your money!:</p>
+            <input type="text" name="sav-id" value="{{ .TotalMoney }}" readonly>
+        </div>
+    </div>
+{{ end }}

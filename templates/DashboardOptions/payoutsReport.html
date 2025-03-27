@@ -5,16 +5,18 @@
             {{ block "payouts-history" . }}
                 <table>
                     <tr>
-                        <th>Id</th>
+                        <th>Affiliate Id</th>
                         <th>date</th>
+                        <th>Name</th>
                         <th>Payout balance</th>
                         <th>Apportation %</th>
                         <th>Payout Profit</th>
                     </tr>
                     {{ range .Payouts }}
                     <tr>
-                        <td>{{ .PayoutId }}</td>
+                        <td>{{ .AccountId }}</td>
                         <td>{{ .PayoutDate }}</td>
+                        <td>{{ .Name }}</td>
                         <td>{{ .AccountBalance }}</td>
                         <td>{{ .DecimalPercentage }} %</td>
                         <td>{{ .AccountProfit }}</td>
@@ -26,7 +28,7 @@
         <div class="form-buttons" style="height: 30%;"> 
             <div class="input-div">
                 <p>Which year would you like the see?:</p>
-                <select name="year-selector" id="year-selector" hx-post="/review-acc-payouts/" hx-target="#payouts">
+                <select name="year-selector" id="year-selector" hx-post="/review-payouts-report/" hx-target="#payouts">
                      {{ range .Years }}
                         <option value="{{ . }}">{{ . }}</option>
                     {{ end }} 
