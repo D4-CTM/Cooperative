@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX idx_login_search ON users(user_id, password);
+CREATE INDEX idx_user_mail_search ON users(primary_email, user_id);
+CREATE INDEX idx_mail_search ON users(primary_email);
 CREATE INDEX idx_date_search ON users(hiring_date);
 
 CREATE TABLE IF NOT EXISTS phone_numbers (
@@ -65,6 +67,10 @@ CREATE TABLE IF NOT EXISTS loans (
     requested_amount NUMERIC(18, 2) NOT NULL CHECK (REQUESTED_AMOUNT >= 120),
 	loan_date DATE NOT NULL DEFAULT CURRENT_DATE,
 	is_payed BOOLEAN NOT NULL DEFAULT FALSE,
+	created_by VARCHAR(101) NOT NULL,
+	creation_date TIMESTAMP NOT NULL,
+	modified_by VARCHAR(101) NOT NULL,
+	last_modification TIMESTAMP NOT NULL,
     PRIMARY KEY (loan_id),
 	FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
@@ -185,7 +191,7 @@ CREATE TABLE IF NOT EXISTS liquidations (
 	account_id CHAR(12) NOT NULL,
 	liquidation_type CHAR(1) NOT NULL CHECK (liquidation_type IN ('T', 'P')),
 	retirement_date DATE NOT NULL DEFAULT CURRENT_DATE,
-	total_money DECIMAL(18, 2), --retired money
+	total_money DECIMAL(18, 2) NOT NULL, --retired money
 	PRIMARY KEY(liquidation_id),
 	FOREIGN KEY (account_id) REFERENCES accounts(account_id)
 );

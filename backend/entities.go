@@ -96,11 +96,11 @@ func (user *Users) Update(db *sqlx.DB) error {
 		user.ModifiedBy,
 		user.LastModificationDate,
 		user.Admin)
-
 	if err != nil {
 		return fmt.Errorf("Crash while updating user\nerr.Error(): %v\n", err.Error())
 	}
-
+    
+    fmt.Println("updated!")
 	return nil
 }
 
@@ -127,7 +127,7 @@ func (pn *PhoneNumbers) Insert(db *sqlx.DB) error {
 
 	_, err := db.Exec(query, pn.UserId, pn.UserPhoneNumber, pn.RegionNumber)
 	if err != nil {
-        return fmt.Errorf("Crash while inserting phone number!\nerr.Error(): %v\n", err.Error()) 
+		return fmt.Errorf("Crash while inserting phone number!\nerr.Error(): %v\n", err.Error())
 	}
 
 	return nil
@@ -145,13 +145,17 @@ func (pn *PhoneNumbers) Update(db *sqlx.DB) error {
 }
 
 type Loans struct {
-	LoanId   string    `db:"LOAN_ID"`
-	UserId   string    `db:"USER_ID"`
-	Periods  int       `db:"LOAN_PERIODS"`
-	Interest float32   `db:"LOAN_INTEREST"`
-	Capital  float64   `db:"REQUESTED_AMOUNT"`
-	Date     time.Time `db:"LOAN_DATE"`
-	IsPayed  bool      `db:"IS_PAYED"`
+	LoanId               string    `db:"LOAN_ID"`
+	UserId               string    `db:"USER_ID"`
+	Periods              int       `db:"LOAN_PERIODS"`
+	Interest             float32   `db:"LOAN_INTEREST"`
+	Capital              float64   `db:"REQUESTED_AMOUNT"`
+	Date                 time.Time `db:"LOAN_DATE"`
+	IsPayed              bool      `db:"IS_PAYED"`
+	CreatedBy            string    `db:"CREATED_BY"`
+	CreationDate         time.Time `db:"CREATION_DATE"`
+	Modified_by          string    `db:"MODIFIED_BY"`
+	LastModificationDate time.Time `db:"LAST_MODIFICATION"`
 }
 
 func (loan *Loans) Insert(db *sqlx.DB) error {
@@ -540,6 +544,5 @@ func (liquidation *Liquidations) Insert(db *sqlx.DB) error {
 }
 
 func (liquidation *Liquidations) Update(db *sqlx.DB) error {
-    return fmt.Errorf("Liquidation updates are not suppoerted at this time!")
+	return fmt.Errorf("Liquidation updates are not suppoerted at this time!")
 }
-

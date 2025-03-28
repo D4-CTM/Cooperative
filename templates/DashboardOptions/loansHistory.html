@@ -1,38 +1,42 @@
 {{ define "dashboard-content" }}
-    <h1>Loans history</h1>
-    <form id="form-div" style="height: 70%;">
-        <div class="form-content" id="loanHistory">
-            {{ block "transaction-History" . }}
-                <table>
-                    <tr>
-                        <th>Loan id</th>
-                        <th>Payment No</th>
-                        <th>Transactions id</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                    </tr>
-                    {{ range .LoanTransactions }}
-                    <tr>
-                        <td>{{ .LoanId }}</td>
-                        <td>{{ .PaymentNo }}</td>
-                        <td>{{ .TransactionId }}</td> 
-                        <td>{{ .Amount }}</td> 
-                        <td>{{ .FmtDate }}</td>
-                    </tr>
-                    {{ end }}
-                </table>
-            {{ end }}
-        </div>
-        <div class="form-buttons" style="height: 30%;"> 
-            <div class="input-div">
-                <p>Which year would you like the see?:</p>
-                <select name="year-selector" id="year-selector" hx-post="/review-loans-history/" hx-target="#loanHistory">
-                     {{ range .Years }}
-                        <option value="{{ . }}">{{ . }}</option>
-                    {{ end }} 
-                </select>
-            </div>
-        </div>
-    </form>
+<h1>Loans history</h1>
+<form id="form-div" style="height: 70%">
+  <div class="form-content" id="loanHistory">
+    {{ block "transaction-History" . }}
+    <table>
+      <tr>
+        <th>Loan id</th>
+        <th>Payment No</th>
+        <th>Transactions id</th>
+        <th>Amount</th>
+        <th>Date</th>
+      </tr>
+      {{ range .LoanTransactions }}
+      <tr>
+        <td>{{ .LoanId }}</td>
+        <td>{{ .PaymentNo }}</td>
+        <td>{{ .TransactionId }}</td>
+        <td>{{ .Amount }}</td>
+        <td>{{ .FmtDate }}</td>
+      </tr>
+      {{ end }}
+    </table>
+    {{ end }}
+  </div>
+  <div class="form-buttons" style="height: 30%">
+    <div class="input-div">
+      <p>Which year would you like the see?:</p>
+      <select
+        name="year-selector"
+        id="year-selector"
+        hx-post="/review-loans-history/"
+        hx-target="#loanHistory"
+      >
+        {{ range .Years }}
+        <option value="{{ . }}">{{ . }}</option>
+        {{ end }}
+      </select>
+    </div>
+  </div>
+</form>
 {{ end }}
-

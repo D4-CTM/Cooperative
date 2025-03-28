@@ -1,34 +1,63 @@
 {{ define "content" }}
-<div id="promo_div">
-</div>
+<div id="promo_div"></div>
 <div id="login_div">
-    <div id="login_header">
-        <h1>ABCo-op</h1>
-        <p>Log into your account and start making your goals come into fruition!</p>
-    </div>
-    <div id="login_form">
-        <form id="form-div">
-            <h1>Log in</h1>
-            <div class="info_div">
-                <p>User code:</p>
-                <input type="text" name="code" placeholder="AF-#####" value="AF-" minlength="8" id="user_code" autocomplete="off" required>
-            </div>
-            <div class="info_div">
-                <p>Password:</p>
-                <input type="password" name="password" id="user_password" placeholder="Password123" minlength="5"
-                    maxlength="25" required>
-            </div>
-            <div id="form_buttons">
-                <input type="submit" name="return_btn" id="return_btn" hx-post="/" value="Cancel" />
-                <input type="submit" name="submit_btn" id="submit_btn" hx-swap="innerHTML" hx-target="#error_div" hx-on:htmx:before-request="validateForm(event)" hx-post="/verify-user/" hx-on::after-request="handleResponse(event)" value="Log in"/>
-            </div>
-            <div style="color: red; font-size: 20px;" id="error_div">
-            
-            </div>
-        </form>
-    </div>
-    <div id="login_footer">
-        <p>Don't have an account? <a href="/register">register here!</a></p>
-    </div>
+  <div id="login_header">
+    <h1>ABCo-op</h1>
+    <p>Log into your account and start making your goals come into fruition!</p>
+  </div>
+  <div id="login_form">
+    <form id="form-div">
+      <h1>Log in</h1>
+      <div class="info_div">
+        <p>User code:</p>
+        <input
+          type="text"
+          name="code"
+          placeholder="AF-#####"
+          value="AF-"
+          minlength="8"
+          id="user_code"
+          autocomplete="off"
+          required
+        />
+      </div>
+      <div class="info_div">
+        <p>Password*:</p>
+        <input
+          type="password"
+          name="password"
+          id="user_password"
+          placeholder="Password123"
+          minlength="5"
+          maxlength="25"
+          required
+        />
+      </div>
+      <div id="form_buttons">
+        <input
+          type="submit"
+          name="return_btn"
+          id="return_btn"
+          hx-post="/"
+          value="Cancel"
+        />
+        <input
+          type="submit"
+          name="submit_btn"
+          id="submit_btn"
+          hx-swap="innerHTML"
+          hx-target="#error_div"
+          hx-on:htmx:before-request="validateForm(event)"
+          hx-post="/verify-user/"
+          hx-on::after-request="handleResponse(event)"
+          value="Log in"
+        />
+      </div>
+      <div style="color: red; font-size: 20px" id="error_div"></div>
+    </form>
+  </div>
+  <div id="login_footer">
+    <p>Don't have an account? <a href="/register">register here!</a></p>
+  </div>
 </div>
 {{ end }}

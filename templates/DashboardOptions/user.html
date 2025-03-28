@@ -1,114 +1,250 @@
 {{ define "dashboard-content" }}
-    <form id="form-div">
-        <h1>user field</h1>
-        <div class="form-content">
-            <div class="fl-row">
-                <div class="input-div">
-                    <p id="AmountData">User id:</p>
-                    <input id="text" name="user_id" value="{{ .User.UserId }}" readonly>
-                </div>
-                <div class="input-div">
-                    <p id="AmountData">Hiring date:</p>
-                    <input type="date" id="hiring-date" name="Hiring-date" value="{{ .User.HiringDate }}" readonly>
-                </div>
-            </div>
-            <div class="fl-row">    
-                <div class="input-div">
-                    <p>First name*:</p>
-                    <input type="text" name="first_name" value="{{ .User.FirstName }}" placeholder="Josué" required/>
-                </div>
-                <div class="input-div">
-                    <p>Second name:</p>
-                    <input type="text" name="second_name" value="{{ .User.SecondName.String }}" placeholder="Gabriel"/>
-                </div>
-            </div> 
-            <div class="fl-row"> 
-                <div class="input-div">
-                    <p>First last name*:</p>
-                    <input type="text" name="first_lastname" value="{{ .User.FirstLastname }}" placeholder="Delcid" required/>
-                </div>
-                <div class="input-div">
-                    <p>Second last name:</p>
-                    <input type="text" name="second_lastname" value="{{ .User.SecondLastname.String }}" placeholder="Reyes"/>
-                </div>
-            </div>
-            <div class="input-div">
-                <p>Birth date:</p>
-                <input type="date" name="birth_date" value="{{ .User.BirthDate.Time }}" min="{{ .minDate  }}" max="{{ .currentDate }}">
-            </div>
-            <div class="input-div">
-                <p>Main email*:</p>
-                <input type="email" name="email" value="{{ .User.PrimaryEmail }}" autocomplete="off"  placeholder="example@gmail.com" required/>
-            </div>
-            <div class="input-div">
-                <p>Recovery email:</p>
-                <input type="email" name="recovery_email" value="{{ .User.SecondaryEmail.String }}" placeholder="example@gmail.com"/>
-            </div>
-            <div class="input-div">
-                <p>Password*:</p>
-                <input type="password" name="password" value="{{ .User.Password }}" autocomplete="off" minlength="5" maxlength="25"  placeholder="Password123" required/>
-            </div>
-            <div class="table-div">
-                <table id="phone-numbers">
-                    <tr>
-                        <th>Region</th>
-                        <th>Number</th>
-                        <th>action</th>
-                    </tr>
-                    {{ range .Phones }}
-                        <tr>
-                            <td><input readonly type="text" name="region" value="{{ .RegionNumber }}"></td>
-                            <td><input readonly type="text"  name="number" value="{{ .UserPhoneNumber }}"></td>
-                            <td>
-                                <input type="hidden" name="actions" value="keep">
-                                <input type="button" value="keep" onclick="changeToRm(this)">
-                            </td>
-                        </tr>
-                    {{ end }}
-                </table>
-                <div class="fl-row">
-                     <div class="input-div">
-                        <p>Region number: </p>
-                        <input type="number" id="ins_reg" name="Ins_region" placeholder="504">
-                    </div>
-                    <div class="input-div">
-                        <p>Phone number:</p>
-                        <input type="number" id="ins_pn" name="Ins_PN" min="10000000" max="99999999" placeholder="89205006"/>
-                    </div>
-                </div>
-                <input type="button" name="ins_pn_btn" value="Insert phone!" id="ins_pn_btn" onclick="insertPhone('check')">
-            </div>
-            <div class="fl-row">
-                <div class="input-div">
-                    <p>Department:</p>
-                    <input type="text" name="department" value="{{ .User.AddressDepartment.String }}" placeholder="Cortés">
-                </div>
-                <div class="input-div">
-                    <p>City:</p>
-                    <input type="text" name="city" value="{{ .User.AddressCity.String }}" placeholder="San Pedro Sula"/>
-                </div>
-            </div>
-            <div class="fl-row">
-                 <div class="input-div">
-                    <p>Street:</p>
-                    <input type="text" name="street" value="{{ .User.AddressStreet.String }}" placeholder="7th street">
-                </div>
-                <div class="input-div">
-                    <p>Avenue:</p>
-                    <input type="text" name="avenue" value="{{ .User.AddressAvenue.String }}" placeholder="12nd avenue"/>
-                </div>
-            </div>
-            <div class="input-div">
-                <p>house number:</p>
-                <input type="text" name="house_number" value="{{ .User.AddressHouseNumber.String }}" placeholder="District los andes">
-            </div>
-            <div class="input-div">
-                <p>Reference:</p>
-                <textarea type="text" name="reference" rows="5" value="{{ .User.AddressReference.String }}" placeholder="A few streets back of the 'supermercado los andes' and next to 'La campesina'."></textarea>
-            </div>
+<form id="form-div">
+  <h1>user field</h1>
+  <div class="form-content">
+    <div class="fl-row">
+      <div class="input-div">
+        <p id="AmountData">User id:</p>
+        <input id="text" name="user_id" value="{{ .User.UserId }}" readonly />
+      </div>
+      <div class="input-div">
+        <p id="AmountData">Hiring date:</p>
+        <input
+          type="date"
+          id="hiring-date"
+          name="Hiring-date"
+          value="{{ .HiringDate }}"
+          readonly
+        />
+      </div>
+    </div>
+    <div class="fl-row">
+      <div class="input-div">
+        <p>First name*:</p>
+        <input
+          type="text"
+          name="first_name"
+          value="{{ .User.FirstName }}"
+          placeholder="Josué"
+          required
+        />
+      </div>
+      <div class="input-div">
+        <p>Second name:</p>
+        <input
+          type="text"
+          name="second_name"
+          value="{{ .User.SecondName.String }}"
+          placeholder="Gabriel"
+        />
+      </div>
+    </div>
+    <div class="fl-row">
+      <div class="input-div">
+        <p>First last name*:</p>
+        <input
+          type="text"
+          name="first_lastname"
+          value="{{ .User.FirstLastname }}"
+          placeholder="Delcid"
+          required
+        />
+      </div>
+      <div class="input-div">
+        <p>Second last name:</p>
+        <input
+          type="text"
+          name="second_lastname"
+          value="{{ .User.SecondLastname.String }}"
+          placeholder="Reyes"
+        />
+      </div>
+    </div>
+    <div class="input-div">
+      <p>Birth date:</p>
+      <input
+        type="date"
+        name="birth_date"
+        value="{{ .BirthDate }}"
+        min="{{ .minDate  }}"
+        max="{{ .currentDate }}"
+      />
+    </div>
+    <div class="input-div">
+      <p>Main email*:</p>
+      <input
+        type="email"
+        name="email"
+        value="{{ .User.PrimaryEmail }}"
+        autocomplete="off"
+        placeholder="example@gmail.com"
+        required
+      />
+    </div>
+    <div class="input-div">
+      <p>Recovery email:</p>
+      <input
+        type="email"
+        name="recovery_email"
+        value="{{ .User.SecondaryEmail.String }}"
+        placeholder="example@gmail.com"
+      />
+    </div>
+    <div class="input-div">
+      <p>Password*:</p>
+      <input
+        type="password"
+        name="password"
+        value="{{ .User.Password }}"
+        autocomplete="off"
+        minlength="5"
+        maxlength="25"
+        placeholder="Password123"
+        required
+      />
+    </div>
+    <div class="table-div">
+      <table id="phone-numbers">
+        <tr>
+          <th>Region</th>
+          <th>Number</th>
+          <th>action</th>
+        </tr>
+        {{ range .Phones }}
+        <tr>
+          <td>
+            <input
+              readonly
+              type="text"
+              name="region"
+              value="{{ .RegionNumber }}"
+            />
+          </td>
+          <td>
+            <input
+              readonly
+              type="text"
+              name="number"
+              value="{{ .UserPhoneNumber }}"
+            />
+          </td>
+          <td>
+            <input type="hidden" name="actions" value="keep" />
+            <input type="button" value="keep" onclick="changeToRm(this)" />
+          </td>
+        </tr>
+        {{ end }}
+      </table>
+      <div class="fl-row">
+        <div class="input-div">
+          <p>Region number:</p>
+          <input
+            type="number"
+            id="ins_reg"
+            name="Ins_region"
+            placeholder="504"
+          />
         </div>
-        <div class="form-buttons">
-            <input type="submit" name="submit_btn" id="submit_btn" hx-post="/modify-user/" hx-on:htmx:before-request="validateForm(event)" hx-on::after-request="handleResponse(event)" value="Modify user"/>
+        <div class="input-div">
+          <p>Phone number:</p>
+          <input
+            type="number"
+            id="ins_pn"
+            name="Ins_PN"
+            min="10000000"
+            max="99999999"
+            placeholder="89205006"
+          />
         </div>
-    </form>
+      </div>
+      <input
+        type="button"
+        name="ins_pn_btn"
+        value="Insert phone!"
+        id="ins_pn_btn"
+        onclick="insertPhone('check')"
+      />
+    </div>
+    <div class="fl-row">
+      <div class="input-div">
+        <p>Department:</p>
+        <input
+          type="text"
+          name="department"
+          value="{{ .User.AddressDepartment.String }}"
+          placeholder="Cortés"
+        />
+      </div>
+      <div class="input-div">
+        <p>City:</p>
+        <input
+          type="text"
+          name="city"
+          value="{{ .User.AddressCity.String }}"
+          placeholder="San Pedro Sula"
+        />
+      </div>
+    </div>
+    <div class="fl-row">
+      <div class="input-div">
+        <p>Street:</p>
+        <input
+          type="text"
+          name="street"
+          value="{{ .User.AddressStreet.String }}"
+          placeholder="7th street"
+        />
+      </div>
+      <div class="input-div">
+        <p>Avenue:</p>
+        <input
+          type="text"
+          name="avenue"
+          value="{{ .User.AddressAvenue.String }}"
+          placeholder="12nd avenue"
+        />
+      </div>
+    </div>
+    <div class="input-div">
+      <p>house number:</p>
+      <input
+        type="text"
+        name="house_number"
+        value="{{ .User.AddressHouseNumber.String }}"
+        placeholder="District los andes"
+      />
+    </div>
+    <div class="input-div">
+      <p>Reference:</p>
+      <textarea
+        type="text"
+        name="reference"
+        rows="5"
+        value="{{ .User.AddressReference.String }}"
+        placeholder="A few streets back of the 'supermercado los andes' and next to 'La campesina'."
+      ></textarea>
+    </div>
+  </div>
+  <div class="form-footer">
+    <div class="fl-row">
+      <p>Created by: {{ .User.CreatedBy.String }}</p>
+      <p>Creation date: {{ .CreationDate }}</p>
+    </div>
+    <div class="fl-row">
+      <p>Last modification By: {{ .User.ModifiedBy.String }}</p>
+      <p>Last modification date: {{ .ModificationDate }}</p>
+    </div>
+  </div>
+  <div class="form-buttons">
+    <input
+      type="submit"
+      name="submit_btn"
+      id="submit_btn"
+      hx-post="/modify-user/"
+      hx-on:htmx:before-request="validateForm(event)"
+      hx-on::after-request="handleResponse(event)"
+      value="Modify user"
+    />
+  </div>
+</form>
 {{ end }}

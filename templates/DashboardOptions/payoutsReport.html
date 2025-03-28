@@ -1,39 +1,44 @@
 {{ define "dashboard-content" }}
-    <h1>User payout history</h1>
-    <form id="form-div" style="height: 70%;">
-        <div class="form-content" id="payouts">
-            {{ block "payouts-history" . }}
-                <table>
-                    <tr>
-                        <th>Affiliate Id</th>
-                        <th>date</th>
-                        <th>Name</th>
-                        <th>Payout balance</th>
-                        <th>Apportation %</th>
-                        <th>Payout Profit</th>
-                    </tr>
-                    {{ range .Payouts }}
-                    <tr>
-                        <td>{{ .AccountId }}</td>
-                        <td>{{ .PayoutDate }}</td>
-                        <td>{{ .Name }}</td>
-                        <td>{{ .AccountBalance }}</td>
-                        <td>{{ .DecimalPercentage }} %</td>
-                        <td>{{ .AccountProfit }}</td>
-                    </tr>
-                    {{ end }}
-                </table>
-            {{ end }}
-        </div>
-        <div class="form-buttons" style="height: 30%;"> 
-            <div class="input-div">
-                <p>Which year would you like the see?:</p>
-                <select name="year-selector" id="year-selector" hx-post="/review-payouts-report/" hx-target="#payouts">
-                     {{ range .Years }}
-                        <option value="{{ . }}">{{ . }}</option>
-                    {{ end }} 
-                </select>
-            </div>
-        </div>
-    </form>
+<h1>User payout history</h1>
+<form id="form-div" style="height: 70%">
+  <div class="form-content" id="payouts">
+    {{ block "payouts-history" . }}
+    <table>
+      <tr>
+        <th>Affiliate Id</th>
+        <th>date</th>
+        <th>Name</th>
+        <th>Payout balance</th>
+        <th>Apportation %</th>
+        <th>Payout Profit</th>
+      </tr>
+      {{ range .Payouts }}
+      <tr>
+        <td>{{ .AccountId }}</td>
+        <td>{{ .PayoutDate }}</td>
+        <td>{{ .Name }}</td>
+        <td>{{ .AccountBalance }}</td>
+        <td>{{ .DecimalPercentage }} %</td>
+        <td>{{ .AccountProfit }}</td>
+      </tr>
+      {{ end }}
+    </table>
+    {{ end }}
+  </div>
+  <div class="form-buttons" style="height: 30%">
+    <div class="input-div">
+      <p>Which year would you like the see?:</p>
+      <select
+        name="year-selector"
+        id="year-selector"
+        hx-post="/review-payouts-report/"
+        hx-target="#payouts"
+      >
+        {{ range .Years }}
+        <option value="{{ . }}">{{ . }}</option>
+        {{ end }}
+      </select>
+    </div>
+  </div>
+</form>
 {{ end }}

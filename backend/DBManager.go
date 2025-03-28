@@ -159,7 +159,7 @@ func FetchLoanTransactions(userId string, year int) ([]LoanTransactions, error) 
 
     totalLoanTransaction := LoanTransactions{
         LoanId: "TOTAL",
-        TransactionId: fmt.Sprint(len(loanTransactions)),
+        PaymentNo: fmt.Sprint(len(loanTransactions)),
     }
     for i := range loanTransactions {
         totalLoanTransaction.Amount += loanTransactions[i].Amount
@@ -176,10 +176,13 @@ func FetchTransactionsByYear(accId string, year int) ([]Transactions, error) {
 		return nil, err
 	}
 	defer con.Close()
-    query := `SELECT *
+    query := `SELECT t.*
         FROM TRANSACTIONS t 
+        LEFT JOIN PAYMENT_TRANSACTIONS pt
+        ON t.TRANSACTION_ID = pt.TRANSACTION_ID
         WHERE t.ACCOUNT_ID = ?
         AND EXTRACT(YEAR FROM t.TRANSACTION_DATE) = ?
+        AND pt.TRANSACTION_ID IS NULL
         ORDER BY EXTRACT(YEAR FROM t.TRANSACTION_DATE) DESC;`
     transactions := []Transactions{}
     err = con.Select(&transactions, query, accId, year)

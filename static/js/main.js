@@ -30,6 +30,7 @@ for (i = 0; i < dropdown.length; i++) {
 function validateForm(event) {
     let form = event.target.closest("form");
     if (!form.checkValidity()) {
+        alert("Please finish filling the form! Check if you miss any required ('*') field!");
         event.preventDefault(); // Prevent HTMX from sending request
         form.reportValidity(); // Show default validation messages
     }
@@ -154,7 +155,7 @@ function insertPhone(rmType) {
     regionCell.innerHTML = `<input readonly type="text" value="${region.value}" name="region">`;
     numberCell.innerHTML = `<input readonly type="text" value="${number.value}" name="number">`;
     if (rmType === "button") {
-        cancelCell.innerHTML = `<input type="button" value="rm" onclick="removeRow(${rows.length})">`;
+        cancelCell.innerHTML = `<input type="button" value="rm" onclick="removeRow(${rows.length - 1})">`;
     } else if (rmType === "check") {
         cancelCell.innerHTML = `<input type="hidden" name="actions" value="keep"><input type="button" value="insert" onclick="changeToRm(this)">`;
     }

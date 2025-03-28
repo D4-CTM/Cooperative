@@ -1,33 +1,38 @@
 {{ define "dashboard-content" }}
-    <h1>Account {{ .TransactionAction }}</h1>
-    <form id="form-div" style="height: 70%;">
-        <div class="form-content" id="accHistory">
-            {{ block "transaction-History" . }}
-                <table>
-                    <tr>
-                        <th>Transactions id</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                    </tr>
-                    {{ range .Transactions }}
-                    <tr>
-                        <td>{{ .TransactionId }}</td>
-                        <td>{{ .Amount }}</td>
-                        <td>{{ .FmtDate }}</td>
-                    </tr>
-                    {{ end }}
-                </table>
-            {{ end }}
-        </div>
-        <div class="form-buttons" style="height: 30%;"> 
-            <div class="input-div">
-                <p>Which year would you like the see?:</p>
-                <select name="year-selector" id="year-selector" hx-post="{{ .Endpoint }}" hx-target="#accHistory">
-                     {{ range .Years }}
-                        <option value="{{ . }}">{{ . }}</option>
-                    {{ end }} 
-                </select>
-            </div>
-        </div>
-    </form>
+<h1>Account {{ .TransactionAction }}</h1>
+<form id="form-div" style="height: 70%">
+  <div class="form-content" id="accHistory">
+    {{ block "transaction-History" . }}
+    <table>
+      <tr>
+        <th>Transactions id</th>
+        <th>Amount</th>
+        <th>Date</th>
+      </tr>
+      {{ range .Transactions }}
+      <tr>
+        <td>{{ .TransactionId }}</td>
+        <td>{{ .Amount }}</td>
+        <td>{{ .FmtDate }}</td>
+      </tr>
+      {{ end }}
+    </table>
+    {{ end }}
+  </div>
+  <div class="form-buttons" style="height: 30%">
+    <div class="input-div">
+      <p>Which year would you like the see?:</p>
+      <select
+        name="year-selector"
+        id="year-selector"
+        hx-post="{{ .Endpoint }}"
+        hx-target="#accHistory"
+      >
+        {{ range .Years }}
+        <option value="{{ . }}">{{ . }}</option>
+        {{ end }}
+      </select>
+    </div>
+  </div>
+</form>
 {{ end }}

@@ -294,4 +294,14 @@ input:checked + .slider:before {
     text-align: center;
 }
 
+.form-footer {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
 
+.form-footer .fl-row p {
+    text-align: center;
+    margin-left: 20px;
+    margin-right: 20px;
+}

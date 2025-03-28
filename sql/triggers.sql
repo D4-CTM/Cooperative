@@ -70,13 +70,31 @@ BEFORE INSERT ON accounts
 REFERENCING NEW AS n
 FOR EACH ROW MODE DB2SQL
 BEGIN
-  DECLARE user_first_name VARCHAR(50);
-  DECLARE user_first_lastname VARCHAR(50);  
+  	DECLARE user_first_name VARCHAR(50);
+  	DECLARE user_first_lastname VARCHAR(50);  
 	
-  SELECT u.first_name, u.first_lastname INTO user_first_name, user_first_lastname
-  FROM users u WHERE u.user_id = n.user_id;
+  	SELECT u.first_name, u.first_lastname INTO user_first_name, user_first_lastname
+  	FROM users u WHERE u.user_id = n.user_id;
   
     SET n.created_by = user_first_name || ' ' || user_first_lastname;
     SET n.modified_by = n.created_by;
+END;
+
+CREATE OR REPLACE FUNCTION fn_get_creator_of(IN v_account_id CHAR(12))
+LANGUAGE SQL
+RETURNS VARCHAR(101)
+DETERMINISTIC
+BEGIN
+  	DECLARE user_first_name VARCHAR(50);
+  	DECLARE user_first_lastname VARCHAR(50);  
+	
+  	SELECT u.first_name, u.first_lastname 
+  	INTO user_first_name, user_first_lastname
+  	FROM users u 
+  	JOIN accounts a 
+  	ON u.user_id = a.user_id
+  	WHERE a.account_id = v_account_id;
+  	
+  	RETURN user_first_name || ' ' || user_first_lastname;
 END;
 
