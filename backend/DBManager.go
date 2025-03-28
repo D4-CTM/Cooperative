@@ -527,6 +527,36 @@ func GetLoanIdOfUser(id string) (string, error) {
 	return loanId, nil
 }
 
+func DeletePhoneNumber(number int) error {
+	con, err := getConnection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+    query := `CALL sp_delete_phone(?)`
+    _, err = con.Exec(query, number)
+    if err != nil {
+        return fmt.Errorf("Crash while deleting phone!\nerr.Error(): %v\n", err.Error())
+    }
+    return nil
+}
+
+func FetchPhoneNumbersOf(userId string) ([]PhoneNumbers, error) {
+	con, err := getConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+    query := `SELECT * FROM phone_numbers WHERE user_id = ?`
+    phones := []PhoneNumbers{}
+
+    err = con.Select(&phones, query, userId)
+    if err != nil {
+        return nil, fmt.Errorf("Crash while fetching the user phones!\nerr.Error(): %v\n", err.Error())
+    }
+    return phones, nil
+}
+
 func Fetch(fetchable Fetchable) error {
 	con, err := getConnection()
 	if err != nil {

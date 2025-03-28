@@ -384,23 +384,23 @@ func requestLiquidation(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("\tWASN'T A HX-Request!")
 	}
 
-    description := r.PostFormValue("description")
-    liquidation := backend.Liquidations {
-        AccountId: backend.LoginUser.UserId + "-CAR",
-        Type: r.PostFormValue("liqType"),
-        Date: time.Now(),
-        Comment: sql.NullString{String: description, Valid: len(description) > 0},
-    }
-    
-    if liquidation.Type == "P" { 
-        amount, err := strconv.ParseFloat(strings.TrimSpace(r.PostFormValue("amount")), 64)
-        if err != nil {
-            fmt.Println(err.Error())
-        }
-        liquidation.TotalMoney = amount
-    }
-    
-    err := backend.Insert(&liquidation)
+	description := r.PostFormValue("description")
+	liquidation := backend.Liquidations{
+		AccountId: backend.LoginUser.UserId + "-CAR",
+		Type:      r.PostFormValue("liqType"),
+		Date:      time.Now(),
+		Comment:   sql.NullString{String: description, Valid: len(description) > 0},
+	}
+
+	if liquidation.Type == "P" {
+		amount, err := strconv.ParseFloat(strings.TrimSpace(r.PostFormValue("amount")), 64)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		liquidation.TotalMoney = amount
+	}
+
+	err := backend.Insert(&liquidation)
 	if err != nil {
 		fmt.Println(err.Error())
 		w.Header().Set("HX-Status", "400")
@@ -409,16 +409,16 @@ func requestLiquidation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    if liquidation.Type == "P" {
-        w.Header().Set("hx-status", "200")
-        w.Header().Set("hx-message", "Money retired succesfully! You can check your account history to check for this retirement!")
-        w.WriteHeader(http.StatusOK)
-    } else {
-        backend.LoginUser.UserId = ""
-        w.Header().Set("hx-status", "200")
-        w.Header().Set("hx-message", "You've succesfully retired from ABCo-op! Thank's for your time and contribution thus far!")
-        w.WriteHeader(http.StatusOK)
-    }
+	if liquidation.Type == "P" {
+		w.Header().Set("hx-status", "200")
+		w.Header().Set("hx-message", "Money retired succesfully! You can check your account history to check for this retirement!")
+		w.WriteHeader(http.StatusOK)
+	} else {
+		backend.LoginUser.UserId = ""
+		w.Header().Set("hx-status", "200")
+		w.Header().Set("hx-message", "You've succesfully retired from ABCo-op! Thank's for your time and contribution thus far!")
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 func requestPayment(w http.ResponseWriter, r *http.Request) {
@@ -565,6 +565,117 @@ func requestLoan(w http.ResponseWriter, r *http.Request) {
 	DashboardLoanHandler(w, r)
 }
 
+func modifyUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Starting registration user...")
+
+	if r.Header.Get("HX-Request") == "" {
+		fmt.Println("\tWASN'T A HX-Request!")
+		return
+	}
+
+    first_name := r.PostFormValue("first_name")
+	second_name := r.PostFormValue("second_name")
+	first_last_name := r.PostFormValue("first_lastname")
+	second_lastname := r.PostFormValue("second_lastname")
+	email := r.PostFormValue("email")
+	recovery_email := r.PostFormValue("recovery_email")
+	birthdate, _ := time.Parse("2006-01-02", r.PostFormValue("birth_date"))
+	_password := r.PostFormValue("password")
+	department := r.PostFormValue("department")
+	city := r.PostFormValue("city")
+	street := r.PostFormValue("street")
+	avenue := r.PostFormValue("avenue")
+	house_number := r.PostFormValue("house_number")
+	reference := r.PostFormValue("reference")
+	admin := r.PostFormValue("admin") == "on"
+
+	user := backend.Users{
+        UserId:               backend.LoginUser.UserId,
+		Password:             _password,
+		FirstName:            first_name,
+		FirstLastname:        first_last_name,
+		SecondName:           sql.NullString{String: second_name, Valid: len(strings.TrimSpace(second_name)) > 0},
+		SecondLastname:       sql.NullString{String: second_lastname, Valid: len(strings.TrimSpace(second_lastname)) > 0},
+		BirthDate:            sql.NullTime{Time: birthdate, Valid: birthdate.Year() > 1},
+		PrimaryEmail:         email,
+		SecondaryEmail:       sql.NullString{String: recovery_email, Valid: len(strings.TrimSpace(recovery_email)) > 0},
+		AddressDepartment:    sql.NullString{String: department, Valid: len(strings.TrimSpace(department)) > 0},
+		AddressCity:          sql.NullString{String: city, Valid: len(strings.TrimSpace(city)) > 0},
+		AddressStreet:        sql.NullString{String: street, Valid: len(strings.TrimSpace(street)) > 0},
+		AddressAvenue:        sql.NullString{String: avenue, Valid: len(strings.TrimSpace(avenue)) > 0},
+		AddressHouseNumber:   sql.NullString{String: house_number, Valid: len(strings.TrimSpace(house_number)) > 0},
+		AddressReference:     sql.NullString{String: reference, Valid: len(strings.TrimSpace(reference)) > 0},
+        ModifiedBy:           sql.NullString{String: backend.LoginUser.Name, Valid: true},
+		LastModificationDate: time.Now(),
+		Admin:                admin,
+	}
+
+    err := backend.Update(&user)
+    if err != nil {
+        fmt.Println(err.Error())
+        w.Header().Set("HX-Status", "400")
+        w.Header().Set("HX-Message", err.Error())
+        w.WriteHeader(http.StatusBadRequest)
+        return ;
+    }
+
+    regions := r.Form["region"]
+    numbers := r.Form["number"]
+    actions := r.Form["actions"]
+    phones := backend.PhoneNumbers{
+		UserId: backend.LoginUser.UserId,
+	}
+
+	for i := range regions {
+		region, err := strconv.Atoi(regions[i])
+		if err != nil {
+			fmt.Println(err.Error())
+			w.Header().Set("HX-Status", "400")
+			w.Header().Set("HX-Message", err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+		    return ;
+        }
+
+		number, err := strconv.Atoi(numbers[i])
+		if err != nil {
+			fmt.Println(err.Error())
+			w.Header().Set("HX-Status", "400")
+			w.Header().Set("HX-Message", err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+		    return ;
+        }
+
+		phones.RegionNumber = region
+		phones.UserPhoneNumber = number
+
+        if actions[i] != "rm" {
+            err = backend.Insert(&phones)
+            if err != nil {
+                fmt.Println(err.Error())
+                w.Header().Set("HX-Status", "400")
+                w.Header().Set("HX-Message", err.Error())
+                w.WriteHeader(http.StatusBadRequest)
+                return
+            }      
+        } else {
+            err = backend.DeletePhoneNumber(number)
+            if err != nil {
+                fmt.Println(err.Error())
+                w.Header().Set("HX-Status", "400")
+                w.Header().Set("HX-Message", err.Error())
+                w.WriteHeader(http.StatusBadRequest)
+                return
+            }      
+            
+        }
+	}
+
+	w.Header().Set("HX-Status", "200")
+	w.Header().Set("HX-Message", fmt.Sprintf("The data of %s has been Succesfully modified!", user.UserId))
+	w.WriteHeader(http.StatusOK)
+	fmt.Println("\tUser registered")
+}
+
 func registerUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Starting registration user...")
 
@@ -616,12 +727,50 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err.Error())
 		w.Header().Set("HX-Status", "400")
-		w.Header().Set("HX-Message", "There was an error while creating your accound, please check that fill all the fields with an '*'")
+		w.Header().Set("HX-Message", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	fmt.Println("your id is:", user.UserId)
 
+	regions := r.Form["region"]
+	numbers := r.Form["number"]
+	phones := backend.PhoneNumbers{
+		UserId: user.UserId,
+	}
+
+	for i := range regions {
+		region, err := strconv.Atoi(regions[i])
+		if err != nil {
+			fmt.Println(err.Error())
+			w.Header().Set("HX-Status", "400")
+			w.Header().Set("HX-Message", err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+		    return ;
+        }
+
+		number, err := strconv.Atoi(numbers[i])
+		if err != nil {
+			fmt.Println(err.Error())
+			w.Header().Set("HX-Status", "400")
+			w.Header().Set("HX-Message", err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+		    return ;
+        }
+
+		phones.RegionNumber = region
+		phones.UserPhoneNumber = number
+
+		err = backend.Insert(&phones)
+		if err != nil {
+			fmt.Println(err.Error())
+			w.Header().Set("HX-Status", "400")
+			w.Header().Set("HX-Message", err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
 	w.Header().Set("HX-Location", "/login")
 	w.Header().Set("HX-Status", "200")
 	w.Header().Set("HX-Message", fmt.Sprintf("Affiliated succesfully! Your id is: %s", user.UserId))
@@ -738,6 +887,26 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	year, month, _ := now.Date()
 	lastOfMonth := time.Date(year, month, 1, 0, 0, 0, 0, now.Location()).AddDate(0, 1, -1)
+	user := backend.Users{
+		UserId:   backend.LoginUser.UserId,
+		Password: backend.LoginUser.Password,
+	}
+
+	err := backend.Fetch(&user)
+	if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		return
+	}
+
+	phones, err := backend.FetchPhoneNumbersOf(user.UserId)
+	if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		return
+	}
 
 	content := map[string]any{
 		"title":        "Dashboard - ABCo-op",
@@ -745,6 +914,8 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		"user":         backend.LoginUser.Name,
 		"admin":        stringBool(backend.LoginUser.Admin),
 		"closureValid": stringBool(compareDates(now, lastOfMonth) || true),
+		"User":         user,
+		"Phones":       phones,
 	}
 
 	w.Header().Set("HX-Status", "202")
@@ -760,6 +931,31 @@ func DashboardUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusBadRequest)
 		return
 	}
+	user := backend.Users{
+		UserId:   backend.LoginUser.UserId,
+		Password: backend.LoginUser.Password,
+	}
+
+	err := backend.Fetch(&user)
+	if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		return
+	}
+
+	phones, err := backend.FetchPhoneNumbersOf(user.UserId)
+	if err != nil {
+		fmt.Println(err.Error())
+		w.Header().Set("HX-Status", "400")
+		w.Header().Set("HX-Message", err.Error())
+		return
+	}
+
+	content := map[string]any{
+		"User":   user,
+		"Phones": phones,
+	}
 
 	w.Header().Set("HX-Status", "202")
 	w.WriteHeader(http.StatusAccepted)
@@ -768,7 +964,7 @@ func DashboardUserHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err.Error())
 		return
 	}
-	tmpl.ExecuteTemplate(w, "dashboard-content", nil)
+	tmpl.ExecuteTemplate(w, "dashboard-content", content)
 }
 
 func DashboardAccountHandler(w http.ResponseWriter, r *http.Request) {
@@ -980,20 +1176,20 @@ func DashboardLiquidationHandle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("HX-Message", err.Error())
 		return
 	}
-    
-    _, month, _ := time.Now().Date()
-	if month == time.December {
-        profit, err := backend.GetProfitOf(backend.LoginUser.UserId)
-        if err != nil {
-            fmt.Printf(err.Error())
-            w.Header().Set("HX-Status", "400")
-            w.Header().Set("HX-Message", err.Error())
-            return
-        }
-        balance += profit
-    }
 
-    content["MaxAmount"] = balance
+	_, month, _ := time.Now().Date()
+	if month == time.December {
+		profit, err := backend.GetProfitOf(backend.LoginUser.UserId)
+		if err != nil {
+			fmt.Printf(err.Error())
+			w.Header().Set("HX-Status", "400")
+			w.Header().Set("HX-Message", err.Error())
+			return
+		}
+		balance += profit
+	}
+
+	content["MaxAmount"] = balance
 	content["UserName"] = backend.LoginUser.Name
 
 	w.Header().Set("HX-Status", "202")
@@ -1348,11 +1544,12 @@ func main() {
 	mux.HandleFunc("/review-closure/", revClosure)
 	mux.HandleFunc("/modify-closure/", modClosure)
 	mux.HandleFunc("/register-closure/", regClosure)
-    mux.HandleFunc("/request-liquidation/", requestLiquidation)
+	mux.HandleFunc("/request-liquidation/", requestLiquidation)
 	mux.HandleFunc("/request-payment/", requestPayment)
 	mux.HandleFunc("/request-deposit/", requestDeposit)
-    mux.HandleFunc("/request-loan/", requestLoan)
-	mux.HandleFunc("/register-user/", registerUser)
+	mux.HandleFunc("/request-loan/", requestLoan)
+	mux.HandleFunc("/modify-user/", modifyUser)
+    mux.HandleFunc("/register-user/", registerUser)
 	mux.HandleFunc("/verify-user/", verifyUser)
 	// dashboard options
 	mux.HandleFunc("/dashboard-Loans-history/", loanHistory)

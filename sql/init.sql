@@ -53,6 +53,9 @@ CREATE TABLE IF NOT EXISTS phone_numbers (
  	FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+CREATE INDEX idx_phone_number_owner ON phone_numbers(user_id);
+CREATE INDEX idx_phone_number ON phone_numbers(user_phone_number);
+
 -- prestamos
 CREATE TABLE IF NOT EXISTS loans (
 	user_id CHAR(8) NOT NULL,

@@ -161,4 +161,33 @@ input:checked + .slider:before {
   transform: translateX(26px);
 }
 
+.table-div {
+    overflow: scroll;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    padding-bottom: 25px;
+}
+
+.table-div #ins_pn_btn {
+    padding-left: 25px;
+    padding-right: 25px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    margin-top: 15px;
+    font-size: 25px;
+}
+
+.table-div th {
+    font-size: 24px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    border: 1px solid #000;
+}
+
+.table-div tr input {
+    font-size: 24px;
+    text-align: center;
+}
 

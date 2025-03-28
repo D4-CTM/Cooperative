@@ -76,7 +76,7 @@ func (user *Users) Insert(db *sqlx.DB) error {
 }
 
 func (user *Users) Update(db *sqlx.DB) error {
-	query := `CALL sp_update_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,)`
+	query := `CALL sp_update_user(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 	_, err := db.Exec(query,
 		sql.Out{Dest: &user.UserId},
 		user.Password,
@@ -93,9 +93,6 @@ func (user *Users) Update(db *sqlx.DB) error {
 		user.PrimaryEmail,
 		user.SecondaryEmail,
 		user.BirthDate,
-		user.HiringDate,
-		user.CreatedBy,
-		user.CreationDate,
 		user.ModifiedBy,
 		user.LastModificationDate,
 		user.Admin)
@@ -130,7 +127,7 @@ func (pn *PhoneNumbers) Insert(db *sqlx.DB) error {
 
 	_, err := db.Exec(query, pn.UserId, pn.UserPhoneNumber, pn.RegionNumber)
 	if err != nil {
-		return err
+        return fmt.Errorf("Crash while inserting phone number!\nerr.Error(): %v\n", err.Error()) 
 	}
 
 	return nil

@@ -50,6 +50,25 @@
                 </p>
             </div>
         </div>
+        <div class="col-parent-input-div table-div">
+            <table id="phone-numbers">
+                <tr>
+                    <th>Region</th>
+                    <th>Number</th>
+                </tr>
+            </table>
+            <div class="row-parent-input-div">
+                 <div class="input-div">
+                    <p>Region number: </p>
+                    <input type="number" id="ins_reg" name="Ins_region" placeholder="504">
+                </div>
+                <div class="input-div">
+                    <p>Phone number:</p>
+                    <input type="number" id="ins_pn" name="Ins_PN" min="10000000" max="99999999" placeholder="89205006"/>
+                </div>
+            </div>
+            <input type="button" name="ins_pn_btn" value="Insert phone!" id="ins_pn_btn" onclick="insertPhone('button')">
+        </div>
         <div class="row-parent-input-div">
              <div class="input-div">
                 <p>Department:</p>
@@ -89,6 +108,4 @@
     <p id="login-txt">Already have an account?<a href="/login">login</a></p>
   </div>
 </div>
-<script id="register_js"></script>
-<script src="./static/js/main.js"></script> 
 {{ end }}

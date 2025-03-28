@@ -110,3 +110,72 @@ function handleResponse(event) {
     }
 }
 
+function insertPhone(rmType) {
+    const region = document.getElementById("ins_reg")
+    const number = document.getElementById("ins_pn")
+
+    if (region.value === "") {
+        alert("Please input something in the region number!")
+        return
+    }
+
+    if (parseInt(region.value) <= 0) {
+        alert("Please input a valid region number!");
+        return;
+    } 
+
+    if (number.value === "") {
+        alert("Please input something as your phone number!")
+        return
+    }
+
+    if (parseInt(number.value) < 10000000 || parseInt(number.value) > 99999999) {
+        alert("Please input a valid phone number!");
+        return;
+    } 
+
+    const table = document.getElementById("phone-numbers")
+    const rows = table.rows
+    
+    for (let i = 1; i < rows.length; i++) {
+        const cells =  rows[i].cells
+        const phoneValue = cells[1].querySelector('input').value;
+        
+        if (phoneValue == number.value) {
+            alert("Already inserted that phone number!");
+            return ;
+        }
+    }
+
+    const row = table.insertRow(rows.length);
+    var regionCell = row.insertCell(0);
+    var numberCell = row.insertCell(1);
+    var cancelCell = row.insertCell(2);
+    regionCell.innerHTML = `<input readonly type="text" value="${region.value}" name="region">`;
+    numberCell.innerHTML = `<input readonly type="text" value="${number.value}" name="number">`;
+    if (rmType === "button") {
+        cancelCell.innerHTML = `<input type="button" value="rm" onclick="removeRow(${rows.length})">`;
+    } else if (rmType === "check") {
+        cancelCell.innerHTML = `<input type="hidden" name="actions" value="keep"><input type="button" value="insert" onclick="changeToRm(this)">`;
+    }
+
+    region.value = "";
+    number.value = "";
+}
+
+function changeToRm(button) {
+    let hiddenInput = button.previousElementSibling; // Get hidden input
+    if (hiddenInput.value === "keep") {
+        hiddenInput.value = "rm"; // Change value
+        button.value = "Remove"; // Change button text
+        button.style.backgroundColor = "red"; // Optional: Change button style
+    } else {
+        hiddenInput.value = "keep"; // Toggle back
+        button.value = "Keep";
+        button.style.backgroundColor = "";
+    }}
+
+function removeRow(rowNo) {
+    document.getElementById("phone-numbers").deleteRow(rowNo);
+}
+

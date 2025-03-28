@@ -53,18 +53,22 @@
                     </div>
                 </div>
                 <script>
-                    const maxAmount = document.getElementById("MaxAmount");
-                    const accType = document.getElementById("Account-Type");
-                    const AmountData = document.getElementById("AmountData");
+                    let maxAmount = document.getElementById("MaxAmount");
+                    let accType = document.getElementById("Account-Type");
+                    let AmountData = document.getElementById("AmountData");
                     
                     function OnTypeSelected(input) {
                       
                         if (input.value === "T") {
                             AmountData.innerText = "You'll retire all the money in your accounts!";
+                            maxAmount.max += 0.01;
+                            maxAmount.min -= 0.01;
                             maxAmount.style.display = "none";
                             accType.style.display = "none;"
                         } else {
-                            AmountData.value = "Amount to retire:";
+                            AmountData.innerText = "Amount to retire:";
+                            maxAmount.max -= 0.01;
+                            maxAmount.min += 0.01
                             maxAmount.style.display = "";
                             accType.style.display = "flex";
                         }
@@ -73,8 +77,7 @@
 
                     function showAll() {
                         if (maxAmount.style.display === "none") {
-                            maxAmount.maxAmount = 0.01
-                            maxAmount.value = 0.01
+                            maxAmount.value = 0.00
                             maxAmount.style.display = "";
                         }
                         if (accType.style.display == "none") {
